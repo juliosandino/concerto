@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: concerto
+      POSTGRES_PASSWORD: concerto
+      POSTGRES_DB: concerto
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U concerto"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  controller:
+    build:
+      context: .
+      dockerfile: Dockerfile.controller
+    ports:
+      - "8000:8000"
+    environment:
+      CONCERTO_DATABASE_URL: postgresql+asyncpg://concerto:concerto@postgres:5432/concerto
+      CONCERTO_WS_HOST: "0.0.0.0"
+      CONCERTO_WS_PORT: "8000"
+      CONCERTO_HEARTBEAT_TIMEOUT_SEC: "15"
+      CONCERTO_HEARTBEAT_CHECK_INTERVAL_SEC: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  chaos:
+    build:
+      context: .
+      dockerfile: Dockerfile.chaos
+    environment:
+      CHAOS_CONTROLLER_URL: ws://controller:8000/ws/agent
+    depends_on:
+      - controller
+    profiles:
+      - chaos
+
+volumes:
+  pgdata:
