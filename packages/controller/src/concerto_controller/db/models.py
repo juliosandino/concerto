@@ -1,7 +1,8 @@
+"""SQLAlchemy ORM models for agents and jobs."""
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from concerto_shared.enums import AgentStatus, JobStatus, Product
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func
@@ -10,10 +11,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
-    pass
+    """SQLAlchemy declarative base."""
 
 
 class AgentRecord(Base):
+    """Database model for a registered test agent."""
+
     __tablename__ = "agents"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -42,6 +45,8 @@ class AgentRecord(Base):
 
 
 class JobRecord(Base):
+    """Database model for a test job."""
+
     __tablename__ = "jobs"
 
     id: Mapped[uuid.UUID] = mapped_column(

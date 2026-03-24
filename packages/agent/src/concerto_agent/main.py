@@ -1,3 +1,4 @@
+"""Agent CLI entry point and main event loop."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +10,7 @@ from concerto_agent.executor import execute_job
 from concerto_shared.messages import JobAssignMessage, WSMessage
 from loguru import logger
 
-_client: AgentClient | None = None
+_client: AgentClient | None = None  # pylint: disable=invalid-name
 
 
 async def _on_message(msg: WSMessage) -> None:
@@ -41,6 +42,7 @@ async def _run(config_path: str | None = None) -> None:
 
 
 def main() -> None:
+    """Parse arguments and run the agent."""
     parser = argparse.ArgumentParser(description="Concerto test agent")
     parser.add_argument(
         "--config",

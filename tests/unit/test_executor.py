@@ -12,8 +12,11 @@ from concerto_shared.messages import JobAssignMessage, JobStatusMessage
 
 
 class TestExecuteJob:
+    """Tests for the execute_job coroutine."""
+
     @pytest.mark.asyncio
     async def test_sends_running_then_final_status(self):
+        """Verify executor sends RUNNING then COMPLETED when failure_rate is 0."""
         agent_id = uuid.uuid4()
         job_id = uuid.uuid4()
         assignment = JobAssignMessage(job_id=job_id, product=Product.VEHICLE_GATEWAY)
@@ -43,6 +46,7 @@ class TestExecuteJob:
 
     @pytest.mark.asyncio
     async def test_failure_rate_1_always_fails(self):
+        """Verify executor reports FAILED when failure_rate is 1."""
         agent_id = uuid.uuid4()
         job_id = uuid.uuid4()
         assignment = JobAssignMessage(job_id=job_id, product=Product.ASSET_GATEWAY)

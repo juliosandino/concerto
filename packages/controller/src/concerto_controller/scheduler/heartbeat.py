@@ -1,3 +1,4 @@
+"""Heartbeat monitor that detects stale agents."""
 from __future__ import annotations
 
 import asyncio
@@ -18,7 +19,9 @@ async def heartbeat_monitor() -> None:
     Runs in a loop every HEARTBEAT_CHECK_INTERVAL_SEC seconds.
     """
     logger.info(
-        f"Heartbeat monitor started (timeout={settings.heartbeat_timeout_sec}s, interval={settings.heartbeat_check_interval_sec}s)"
+        f"Heartbeat monitor started "
+        f"(timeout={settings.heartbeat_timeout_sec}s, "
+        f"interval={settings.heartbeat_check_interval_sec}s)"
     )
 
     while True:

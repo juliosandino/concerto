@@ -30,3 +30,31 @@ concerto-dashboard = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.pylint.main]
+# Monorepo: pylint can't resolve workspace editable installs
+ignore-patterns = ["^\\..*", "^\\d.*"]
+ignore-paths = ["packages/controller/migrations"]
+
+[tool.pylint."messages control"]
+disable = [
+    "import-error",            # E0401 — false positive in uv workspace monorepo
+    "no-member",               # E1101 — false positive with websockets library
+    "not-callable",            # E1102 — false positive with SQLAlchemy
+    "import-outside-toplevel", # C0415 — intentional circular-import avoidance
+    "broad-exception-caught",  # W0718 — intentional in WS/network error handling
+    "duplicate-code",          # R0801 — similar patterns across packages are acceptable
+    "global-statement",        # W0603 — used intentionally for singleton pattern
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.design]
+max-args = 8
+max-positional-arguments = 8
+max-attributes = 12
+min-public-methods = 0
+max-statements = 60
+max-locals = 25
+max-branches = 15

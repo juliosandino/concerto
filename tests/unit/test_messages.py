@@ -19,7 +19,10 @@ from concerto_shared.messages import (
 
 
 class TestRegisterMessage:
+    """Tests for RegisterMessage."""
+
     def test_serialization_roundtrip(self):
+        """Verify RegisterMessage survives a serialize-then-parse roundtrip."""
         msg = RegisterMessage(
             agent_name="test-agent",
             capabilities=[Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY],
@@ -32,6 +35,7 @@ class TestRegisterMessage:
         assert parsed.type == MessageType.REGISTER
 
     def test_type_field_is_set_automatically(self):
+        """Verify the type field is populated automatically on construction."""
         msg = RegisterMessage(
             agent_name="test",
             capabilities=[],
@@ -40,7 +44,10 @@ class TestRegisterMessage:
 
 
 class TestRegisterAckMessage:
+    """Tests for RegisterAckMessage."""
+
     def test_serialization_roundtrip(self):
+        """Verify RegisterAckMessage survives a serialize-then-parse roundtrip."""
         agent_id = uuid.uuid4()
         msg = RegisterAckMessage(agent_id=agent_id)
         raw = msg.model_dump_json()
@@ -51,7 +58,10 @@ class TestRegisterAckMessage:
 
 
 class TestDisconnectMessage:
+    """Tests for DisconnectMessage."""
+
     def test_serialization_roundtrip(self):
+        """Verify DisconnectMessage survives a serialize-then-parse roundtrip."""
         msg = DisconnectMessage(reason="test removal")
         raw = msg.model_dump_json()
         parsed = parse_message(raw)
@@ -60,12 +70,16 @@ class TestDisconnectMessage:
         assert parsed.type == MessageType.DISCONNECT
 
     def test_default_reason(self):
+        """Verify the default disconnect reason is applied."""
         msg = DisconnectMessage()
         assert msg.reason == "Removed by controller"
 
 
 class TestHeartbeatMessage:
+    """Tests for HeartbeatMessage."""
+
     def test_serialization_roundtrip(self):
+        """Verify HeartbeatMessage survives a serialize-then-parse roundtrip."""
         agent_id = uuid.uuid4()
         msg = HeartbeatMessage(agent_id=agent_id)
         parsed = parse_message(msg.model_dump_json())
@@ -74,7 +88,10 @@ class TestHeartbeatMessage:
 
 
 class TestJobAssignMessage:
+    """Tests for JobAssignMessage."""
+
     def test_serialization_roundtrip(self):
+        """Verify JobAssignMessage survives a serialize-then-parse roundtrip."""
         job_id = uuid.uuid4()
         msg = JobAssignMessage(job_id=job_id, product=Product.VEHICLE_GATEWAY)
         parsed = parse_message(msg.model_dump_json())
@@ -84,7 +101,10 @@ class TestJobAssignMessage:
 
 
 class TestJobStatusMessage:
+    """Tests for JobStatusMessage."""
+
     def test_completed_roundtrip(self):
+        """Verify a completed JobStatusMessage roundtrips correctly."""
         agent_id = uuid.uuid4()
         job_id = uuid.uuid4()
         msg = JobStatusMessage(
@@ -99,6 +119,7 @@ class TestJobStatusMessage:
         assert parsed.result == "Test passed"
 
     def test_failed_with_no_result(self):
+        """Verify a failed status message defaults result to None."""
         msg = JobStatusMessage(
             agent_id=uuid.uuid4(),
             job_id=uuid.uuid4(),
@@ -108,14 +129,19 @@ class TestJobStatusMessage:
 
 
 class TestParseMessage:
+    """Tests for the parse_message helper."""
+
     def test_invalid_json_raises(self):
+        """Verify that invalid JSON input raises an exception."""
         with pytest.raises(Exception):
             parse_message("not json")
 
     def test_unknown_type_raises(self):
+        """Verify that an unrecognised message type raises an exception."""
         with pytest.raises(Exception):
             parse_message('{"type": "unknown", "data": {}}')
 
     def test_missing_required_field_raises(self):
+        """Verify that omitting a required field raises an exception."""
         with pytest.raises(Exception):
             parse_message('{"type": "register"}')

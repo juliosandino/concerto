@@ -1,7 +1,8 @@
+"""Failure profiles for chaos agent behavior."""
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -16,18 +17,23 @@ class FailureProfile:
     flap_probability: float = 0.0
 
     def should_dropout(self) -> bool:
+        """Return whether the agent should drop out."""
         return random.random() < self.dropout_probability
 
     def get_uptime(self) -> float:
+        """Return a random uptime duration in seconds."""
         return random.uniform(self.min_uptime_sec, self.max_uptime_sec)
 
     def should_flap(self) -> bool:
+        """Return whether the agent should flap."""
         return random.random() < self.flap_probability
 
     def get_heartbeat_interval(self, base_interval: float) -> float:
+        """Return the adjusted heartbeat interval."""
         return base_interval * self.heartbeat_delay_factor
 
     def should_fail_job(self) -> bool:
+        """Return whether the current job should fail."""
         return random.random() < self.job_failure_rate
 
 

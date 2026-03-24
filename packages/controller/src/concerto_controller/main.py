@@ -1,3 +1,4 @@
+"""Controller FastAPI application and startup lifecycle."""
 from __future__ import annotations
 
 import asyncio
@@ -32,7 +33,8 @@ logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
+    """Manage controller startup and shutdown lifecycle."""
     # Startup
     logger.info("Initializing database...")
     await init_db()
@@ -62,10 +64,12 @@ app.include_router(agents_router)
 
 @app.get("/health")
 async def health():
+    """Health check endpoint."""
     return {"status": "ok"}
 
 
 def run() -> None:
+    """Start the controller server."""
     uvicorn.run(
         "concerto_controller.main:app",
         host=settings.ws_host,

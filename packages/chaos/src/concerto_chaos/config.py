@@ -1,7 +1,10 @@
+"""Chaos simulator configuration and preset profiles."""
 from pydantic_settings import BaseSettings
 
 
 class ChaosSettings(BaseSettings):
+    """Chaos simulator settings loaded from environment variables."""
+
     num_agents: int = 5
     controller_url: str = "ws://localhost:8000/ws/agent"
     chaos_level: str = "medium"  # low, medium, high

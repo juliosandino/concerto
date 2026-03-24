@@ -1,3 +1,4 @@
+"""Agent configuration and YAML settings loader."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,6 +9,8 @@ from pydantic_settings import BaseSettings
 
 
 class AgentSettings(BaseSettings):
+    """Agent runtime settings loaded from env and YAML."""
+
     agent_name: str = "testbed-01"
     capabilities: list[Product] = [Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY]
     controller_url: str = "ws://localhost:8000/ws/agent"
@@ -27,7 +30,7 @@ def load_settings(config_path: str | Path | None = None) -> AgentSettings:
     overrides: dict = {}
     if config_path is not None:
         path = Path(config_path)
-        with path.open() as f:
+        with path.open(encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         if "agent_name" in data:
             overrides["agent_name"] = data["agent_name"]

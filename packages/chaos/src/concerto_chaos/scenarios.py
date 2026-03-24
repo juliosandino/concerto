@@ -1,10 +1,10 @@
+"""Structured chaos verification scenarios and runner."""
 from __future__ import annotations
 
 import asyncio
 import random
 import time
 from dataclasses import dataclass
-from urllib.parse import urlparse
 
 import httpx
 from concerto_chaos.managed_agent import ManagedAgent
@@ -18,6 +18,8 @@ JOB_DURATION_RANGE = (5.0, 10.0)
 
 @dataclass
 class ScenarioResult:
+    """Result of a single chaos scenario run."""
+
     name: str
     description: str
     passed: bool
@@ -130,7 +132,7 @@ async def scenario_normal_completion(
         product = random.choice(ALL_PRODUCTS)
         job = await _create_job(http, product, duration=5.0)
         job_id = job["id"]
-        final = await _poll_job(http, job_id, {"completed"}, timeout=30.0)
+        await _poll_job(http, job_id, {"completed"}, timeout=30.0)
         return ScenarioResult(
             name="normal_completion",
             description="Submit job → verify COMPLETED",
@@ -171,7 +173,7 @@ async def scenario_kill_agent_requeue(
         await _delete_agent(http, str(agent.agent_id))
 
         # Verify job goes back to queued
-        final = await _poll_job(http, job_id, {"queued"}, timeout=15.0)
+        await _poll_job(http, job_id, {"queued"}, timeout=15.0)
         return ScenarioResult(
             name="kill_agent_requeue",
             description="Kill agent mid-job → verify job re-queued",
@@ -221,7 +223,7 @@ async def scenario_kill_agent_failover(
         await _delete_agent(http, assigned_id)
 
         # Verify the backup picks it up and completes it
-        final = await _poll_job(http, job_id, {"completed"}, timeout=45.0)
+        await _poll_job(http, job_id, {"completed"}, timeout=45.0)
         return ScenarioResult(
             name="kill_agent_failover",
             description="Kill assigned agent → backup completes job",
@@ -263,10 +265,10 @@ async def scenario_fail_job_early(
         await agent.fail_current_job()
 
         # Verify job is FAILED
-        final = await _poll_job(http, job_id, {"failed"}, timeout=15.0)
+        await _poll_job(http, job_id, {"failed"}, timeout=15.0)
 
         # Verify agent goes back to ONLINE
-        agent_info = await _poll_agent_status(
+        await _poll_agent_status(
             http, str(agent.agent_id), "online", timeout=15.0
         )
 
@@ -310,7 +312,7 @@ async def scenario_agent_disconnect_requeue(
         await agent.stop()
 
         # Verify job goes back to queued
-        final = await _poll_job(http, job_id, {"queued"}, timeout=15.0)
+        await _poll_job(http, job_id, {"queued"}, timeout=15.0)
         return ScenarioResult(
             name="agent_disconnect_requeue",
             description="Agent WS disconnect mid-job → job re-queued",
@@ -406,7 +408,7 @@ async def scenario_queue_then_dispatch(
         # Now start an agent — job should be dispatched
         await agent.start()
 
-        final = await _poll_job(http, job_id, {"completed"}, timeout=30.0)
+        await _poll_job(http, job_id, {"completed"}, timeout=30.0)
         return ScenarioResult(
             name="queue_then_dispatch",
             description="Job queued with no agents → start agent → COMPLETED",

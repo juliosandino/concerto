@@ -1,3 +1,4 @@
+"""Agent WebSocket endpoint and message handlers."""
 from __future__ import annotations
 
 import uuid
@@ -9,7 +10,6 @@ from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import (
     HeartbeatMessage,
     JobStatusMessage,
-    MessageType,
     RegisterAckMessage,
     RegisterMessage,
     parse_message,
@@ -26,6 +26,7 @@ connections: dict[uuid.UUID, WebSocket] = {}
 
 @router.websocket("/ws/agent")
 async def agent_websocket(ws: WebSocket) -> None:
+    """Handle agent WebSocket connections."""
     await ws.accept()
     agent_id: uuid.UUID | None = None
 

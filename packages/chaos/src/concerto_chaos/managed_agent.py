@@ -1,3 +1,4 @@
+"""Controllable mock agent for structured chaos scenario testing."""
 from __future__ import annotations
 
 import asyncio

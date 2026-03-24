@@ -1,3 +1,4 @@
+"""Concerto shared library — enums, messages, and models."""
 from concerto_shared.enums import AgentStatus, JobStatus, Product
 from concerto_shared.messages import (
     DisconnectMessage,

@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from concerto_shared.enums import AgentStatus, JobStatus
 
 

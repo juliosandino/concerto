@@ -1,3 +1,4 @@
+"""WebSocket message models and parsers for agent and dashboard protocols."""
 from __future__ import annotations
 
 import json
@@ -10,6 +11,8 @@ from pydantic import BaseModel, Field
 
 
 class MessageType(StrEnum):
+    """Discriminator enum for WebSocket message types."""
+
     REGISTER = "register"
     REGISTER_ACK = "register_ack"
     HEARTBEAT = "heartbeat"

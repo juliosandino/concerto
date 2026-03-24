@@ -1,3 +1,4 @@
+"""WebSocket client for connecting agents to the controller."""
 from __future__ import annotations
 
 import asyncio
@@ -91,11 +92,13 @@ class AgentClient:
         self._ws = None
 
     async def stop(self) -> None:
+        """Stop the client and close the WebSocket."""
         self._running = False
         if self._ws:
             await self._ws.close()
 
     async def send(self, msg: WSMessage) -> None:
+        """Send a message over the WebSocket."""
         if self._ws:
             await self._ws.send(msg.model_dump_json())
 

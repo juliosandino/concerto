@@ -1,8 +1,8 @@
+"""Textual TUI dashboard application for Concerto TSS."""
 from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 from datetime import datetime, timezone
 
 import websockets
@@ -72,6 +72,7 @@ class JobSubmitScreen(ModalScreen[JobSubmitResult | None]):
         self._selected_product: Product | None = None
 
     def compose(self) -> ComposeResult:
+        """Build the widget tree."""
         with Container(id="picker-container"):
             yield Label("Select product for new job:", id="picker-title")
             option_list = OptionList(id="product-options")
@@ -84,6 +85,7 @@ class JobSubmitScreen(ModalScreen[JobSubmitResult | None]):
             yield Input(placeholder="e.g. 5.0", id="duration-input")
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        """Handle product selection from the option list."""
         self._selected_product = Product(event.option.id)
         self._try_submit()
 
@@ -102,6 +104,7 @@ class JobSubmitScreen(ModalScreen[JobSubmitResult | None]):
         self.dismiss(JobSubmitResult(self._selected_product, duration))
 
     def action_cancel(self) -> None:
+        """Cancel and dismiss the dialog."""
         self.dismiss(None)
 
 
@@ -161,6 +164,7 @@ class ConcertoDashboard(App):
         self._agent_row_ids: dict[str, str] = {}
 
     def compose(self) -> ComposeResult:
+        """Build the widget tree."""
         yield Header(show_clock=True)
         with Container(id="main"):
             with Container(id="agents-panel"):
@@ -178,6 +182,7 @@ class ConcertoDashboard(App):
         yield Footer()
 
     async def on_mount(self) -> None:
+        """Initialize tables and start the WebSocket loop."""
         # Set up agent table columns
         agents_table = self.query_one("#agents-table", DataTable)
         agents_table.add_columns(
@@ -378,6 +383,7 @@ class ConcertoDashboard(App):
         )
 
     async def on_unmount(self) -> None:
+        """Cancel WebSocket task and close the connection."""
         if self._ws_task:
             self._ws_task.cancel()
             try:
@@ -389,6 +395,7 @@ class ConcertoDashboard(App):
 
 
 def run() -> None:
+    """Launch the dashboard application."""
     parser = argparse.ArgumentParser(description="Concerto TUI Dashboard")
     parser.add_argument(
         "--controller-url",

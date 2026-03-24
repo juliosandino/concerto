@@ -1,3 +1,4 @@
+"""REST API endpoints for job management."""
 from __future__ import annotations
 
 import uuid
@@ -7,23 +8,16 @@ from concerto_controller.db.session import get_session
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.models import JobInfo
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
-class JobCreateRequest:
-    """Thin wrapper — FastAPI will parse from JSON body."""
-
-    def __init__(self, product: Product):
-        self.product = product
-
-
-from pydantic import BaseModel
-
-
 class JobCreateBody(BaseModel):
+    """Request body for creating a new job."""
+
     product: Product
     duration: float | None = None
 

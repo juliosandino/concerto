@@ -1,3 +1,4 @@
+"""Chaos mock agent simulator with random failure profiles."""
 from __future__ import annotations
 
 import asyncio
@@ -14,7 +15,6 @@ from concerto_shared.messages import (
     JobStatusMessage,
     RegisterAckMessage,
     RegisterMessage,
-    WSMessage,
     parse_message,
 )
 from loguru import logger
@@ -103,7 +103,7 @@ async def run_chaos_agent(
                 )
                 hb_interval = profile.get_heartbeat_interval(base_heartbeat_interval)
 
-                session_start = asyncio.get_event_loop().time()
+                asyncio.get_event_loop().time()
 
                 async def heartbeat_loop():
                     while True:
@@ -215,10 +215,6 @@ async def _handle_job(
 class _ChaosDropout(Exception):
     """Sentinel exception to trigger a chaos dropout."""
 
-    pass
-
 
 class _ChaosDisconnected(Exception):
     """Sentinel exception when controller sends a disconnect."""
-
-    pass

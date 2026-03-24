@@ -1,10 +1,11 @@
+"""Dashboard WebSocket endpoint and push notification handlers."""
 from __future__ import annotations
 
 import uuid
 
 from concerto_controller.db.models import AgentRecord, JobRecord
-from concerto_controller.db.session import async_session, get_session
-from concerto_shared.enums import AgentStatus, JobStatus, Product
+from concerto_controller.db.session import async_session
+from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import (
     DashboardCreateJobMessage,
     DashboardRemoveAgentMessage,
@@ -80,6 +81,7 @@ async def notify_dashboards() -> None:
 
 @router.websocket("/ws/dashboard")
 async def dashboard_websocket(ws: WebSocket) -> None:
+    """Handle dashboard WebSocket connections."""
     await ws.accept()
     dashboard_connections.add(ws)
     logger.info("Dashboard client connected")

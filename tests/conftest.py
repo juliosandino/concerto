@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
 import uuid
-from unittest.mock import AsyncMock
 
 import pytest
 
 
 @pytest.fixture
 def agent_id() -> uuid.UUID:
+    """Generate a random agent UUID."""
     return uuid.uuid4()
 
 
 @pytest.fixture
 def job_id() -> uuid.UUID:
+    """Generate a random job UUID."""
     return uuid.uuid4()

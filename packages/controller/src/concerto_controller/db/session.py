@@ -1,11 +1,10 @@
+"""Database engine, session factory, and Alembic migration helpers."""
 from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
 from concerto_controller.config import settings
-from concerto_controller.db.models import (  # noqa: F401 – keep for Alembic target_metadata
-    Base,
-)
+from concerto_controller.db.models import Base  # noqa: F401  pylint: disable=unused-import
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 engine = create_async_engine(settings.database_url, echo=False)

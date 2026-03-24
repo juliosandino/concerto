@@ -1,10 +1,11 @@
+"""Chaos simulator CLI entry point."""
 from __future__ import annotations
 
 import argparse
 import asyncio
 from urllib.parse import urlparse
 
-from concerto_chaos.config import CHAOS_PRESETS, ChaosSettings
+from concerto_chaos.config import CHAOS_PRESETS
 from concerto_chaos.profiles import create_profile
 from concerto_chaos.simulator import run_chaos_agent
 from loguru import logger
@@ -51,6 +52,7 @@ async def _run_scenarios(controller_url: str, runtime: float) -> None:
 
 
 def main() -> None:
+    """Parse CLI arguments and run the selected mode."""
     parser = argparse.ArgumentParser(description="Concerto Chaos Simulator")
     parser.add_argument(
         "--mode",
