@@ -7,6 +7,8 @@ import uuid
 import pytest
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import (
+    DashboardCreateJobMessage,
+    DashboardRemoveAgentMessage,
     DisconnectMessage,
     HeartbeatMessage,
     JobAssignMessage,
@@ -14,6 +16,7 @@ from concerto_shared.messages import (
     MessageType,
     RegisterAckMessage,
     RegisterMessage,
+    parse_dashboard_message,
     parse_message,
 )
 
@@ -145,3 +148,33 @@ class TestParseMessage:
         """Verify that omitting a required field raises an exception."""
         with pytest.raises(Exception):
             parse_message('{"type": "register"}')
+
+
+class TestParseDashboardMessage:
+    """Tests for the parse_dashboard_message helper."""
+
+    def test_parses_remove_agent(self):
+        """Verify parse_dashboard_message handles DashboardRemoveAgentMessage."""
+        agent_id = uuid.uuid4()
+        msg = DashboardRemoveAgentMessage(agent_id=agent_id)
+        parsed = parse_dashboard_message(msg.model_dump_json())
+        assert isinstance(parsed, DashboardRemoveAgentMessage)
+        assert parsed.agent_id == agent_id
+
+    def test_parses_create_job(self):
+        """Verify parse_dashboard_message handles DashboardCreateJobMessage."""
+        msg = DashboardCreateJobMessage(product=Product.VEHICLE_GATEWAY, duration=3.0)
+        parsed = parse_dashboard_message(msg.model_dump_json())
+        assert isinstance(parsed, DashboardCreateJobMessage)
+        assert parsed.product == Product.VEHICLE_GATEWAY
+        assert parsed.duration == 3.0
+
+    def test_invalid_type_raises(self):
+        """Verify parse_dashboard_message rejects unknown types."""
+        with pytest.raises(Exception):
+            parse_dashboard_message('{"type": "unknown"}')
+
+    def test_invalid_json_raises(self):
+        """Verify parse_dashboard_message rejects invalid JSON."""
+        with pytest.raises(Exception):
+            parse_dashboard_message("not json")
