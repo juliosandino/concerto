@@ -1,30 +1,51 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import random
 import uuid
 
+import websockets
+from concerto_chaos.profiles import FailureProfile
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import (
+    DisconnectMessage,
     HeartbeatMessage,
     JobAssignMessage,
     JobStatusMessage,
+    RegisterAckMessage,
     RegisterMessage,
     WSMessage,
     parse_message,
 )
-from concerto_chaos.profiles import FailureProfile
-
-import websockets
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 AGENT_NAMES = [
-    "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
-    "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa",
-    "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey",
-    "xray", "yankee", "zulu",
+    "alpha",
+    "bravo",
+    "charlie",
+    "delta",
+    "echo",
+    "foxtrot",
+    "golf",
+    "hotel",
+    "india",
+    "juliet",
+    "kilo",
+    "lima",
+    "mike",
+    "november",
+    "oscar",
+    "papa",
+    "quebec",
+    "romeo",
+    "sierra",
+    "tango",
+    "uniform",
+    "victor",
+    "whiskey",
+    "xray",
+    "yankee",
+    "zulu",
 ]
 
 ALL_PRODUCTS = list(Product)
@@ -58,15 +79,24 @@ async def run_chaos_agent(
             async with websockets.connect(controller_url) as ws:
                 # Register
                 reg = RegisterMessage(
-                    agent_id=agent_id,
                     agent_name=agent_name,
                     capabilities=capabilities,
                 )
                 await ws.send(reg.model_dump_json())
-                logger.info("[%s] Connected and registered (caps=%s)", agent_name, capabilities)
+
+                # Wait for server-assigned ID
+                raw = await ws.recv()
+                ack = parse_message(raw)
+                if not isinstance(ack, RegisterAckMessage):
+                    logger.error(f"[{agent_name}] Expected RegisterAck, got {type(ack).__name__}")
+                    continue
+                agent_id = ack.agent_id
+                logger.info(f"[{agent_name}] Connected and registered (caps={capabilities})")
 
                 # Determine how long this session will last before dropout
-                uptime = profile.get_uptime() if profile.should_dropout() else float("inf")
+                uptime = (
+                    profile.get_uptime() if profile.should_dropout() else float("inf")
+                )
                 hb_interval = profile.get_heartbeat_interval(base_heartbeat_interval)
 
                 session_start = asyncio.get_event_loop().time()
@@ -80,6 +110,9 @@ async def run_chaos_agent(
                 async def receive_loop():
                     async for raw in ws:
                         msg = parse_message(raw)
+                        if isinstance(msg, DisconnectMessage):
+                            logger.info(f"[{agent_name}] Received disconnect: {msg.reason}")
+                            raise _ChaosDisconnected()
                         if isinstance(msg, JobAssignMessage):
                             await _handle_job(ws, agent_id, agent_name, msg, profile)
 
@@ -89,7 +122,7 @@ async def run_chaos_agent(
                         await asyncio.Event().wait()
                     else:
                         await asyncio.sleep(uptime)
-                        logger.warning("[%s] Chaos dropout after %.1fs!", agent_name, uptime)
+                        logger.warning(f"[{agent_name}] Chaos dropout after {uptime:.1f}s!")
                         raise _ChaosDropout()
 
                 try:
@@ -97,19 +130,26 @@ async def run_chaos_agent(
                         tg.create_task(heartbeat_loop())
                         tg.create_task(receive_loop())
                         tg.create_task(dropout_timer())
+                except* _ChaosDisconnected:
+                    logger.info(f"[{agent_name}] Terminated by controller")
+                    return
                 except* _ChaosDropout:
                     pass  # Expected — will reconnect
 
-        except (ConnectionError, OSError, websockets.exceptions.WebSocketException) as e:
-            logger.warning("[%s] Connection error: %s", agent_name, e)
+        except (
+            ConnectionError,
+            OSError,
+            websockets.exceptions.WebSocketException,
+        ) as e:
+            logger.warning(f"[{agent_name}] Connection error: {e}")
 
         # Check if this agent should flap (rapid reconnect) or wait
         if profile.should_flap():
             delay = random.uniform(0.5, 2.0)
-            logger.info("[%s] Flapping — reconnecting in %.1fs", agent_name, delay)
+            logger.info(f"[{agent_name}] Flapping — reconnecting in {delay:.1f}s")
         else:
             delay = random.uniform(3.0, 10.0)
-            logger.info("[%s] Reconnecting in %.1fs", agent_name, delay)
+            logger.info(f"[{agent_name}] Reconnecting in {delay:.1f}s")
 
         await asyncio.sleep(delay)
 
@@ -123,7 +163,7 @@ async def _handle_job(
 ) -> None:
     """Execute a job with potential chaos-induced failure."""
     job_id = assignment.job_id
-    logger.info("[%s] Received job %s (product=%s)", agent_name, job_id, assignment.product)
+    logger.info(f"[{agent_name}] Received job {job_id} (product={assignment.product})")
 
     # Report running
     await ws.send(
@@ -134,19 +174,19 @@ async def _handle_job(
         ).model_dump_json()
     )
 
-    # Simulate work
-    duration = random.uniform(2.0, 8.0)
+    # Simulate work — use job-specified duration if provided
+    duration = assignment.duration or random.uniform(2.0, 8.0)
     await asyncio.sleep(duration)
 
     # Chaos: maybe fail
     if profile.should_fail_job():
         status = JobStatus.FAILED
         result = f"Chaos-induced failure after {duration:.1f}s"
-        logger.warning("[%s] Job %s FAILED (chaos) after %.1fs", agent_name, job_id, duration)
+        logger.warning(f"[{agent_name}] Job {job_id} FAILED (chaos) after {duration:.1f}s")
     else:
         status = JobStatus.COMPLETED
         result = f"Test passed after {duration:.1f}s"
-        logger.info("[%s] Job %s COMPLETED after %.1fs", agent_name, job_id, duration)
+        logger.info(f"[{agent_name}] Job {job_id} COMPLETED after {duration:.1f}s")
 
     await ws.send(
         JobStatusMessage(
@@ -160,4 +200,11 @@ async def _handle_job(
 
 class _ChaosDropout(Exception):
     """Sentinel exception to trigger a chaos dropout."""
+
+    pass
+
+
+class _ChaosDisconnected(Exception):
+    """Sentinel exception when controller sends a disconnect."""
+
     pass

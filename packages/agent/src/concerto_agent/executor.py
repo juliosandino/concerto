@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import random
 import uuid
 
 from concerto_shared.enums import JobStatus
 from concerto_shared.messages import JobAssignMessage, JobStatusMessage
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 async def execute_job(
@@ -25,7 +23,7 @@ async def execute_job(
     COMPLETED or FAILED based on failure_rate probability.
     """
     job_id = assignment.job_id
-    logger.info("Starting job %s (product=%s)", job_id, assignment.product)
+    logger.info(f"Starting job {job_id} (product={assignment.product})")
 
     # Report running
     await send_fn(
@@ -36,19 +34,19 @@ async def execute_job(
         )
     )
 
-    # Simulate work
-    duration = random.uniform(min_duration, max_duration)
+    # Simulate work — use job-specified duration if provided
+    duration = assignment.duration or random.uniform(min_duration, max_duration)
     await asyncio.sleep(duration)
 
     # Determine outcome
     if random.random() < failure_rate:
         status = JobStatus.FAILED
         result = f"Simulated failure after {duration:.1f}s"
-        logger.warning("Job %s failed after %.1fs", job_id, duration)
+        logger.warning(f"Job {job_id} failed after {duration:.1f}s")
     else:
         status = JobStatus.COMPLETED
         result = f"Test passed after {duration:.1f}s"
-        logger.info("Job %s completed after %.1fs", job_id, duration)
+        logger.info(f"Job {job_id} completed after {duration:.1f}s")
 
     await send_fn(
         JobStatusMessage(

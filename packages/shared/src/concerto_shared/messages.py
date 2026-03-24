@@ -5,25 +5,32 @@ from enum import StrEnum
 from typing import Annotated, Literal, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
 from concerto_shared.enums import JobStatus, Product
+from pydantic import BaseModel, Field
 
 
 class MessageType(StrEnum):
     REGISTER = "register"
+    REGISTER_ACK = "register_ack"
     HEARTBEAT = "heartbeat"
     JOB_ASSIGN = "job_assign"
     JOB_STATUS = "job_status"
+    DISCONNECT = "disconnect"
 
 
 class RegisterMessage(BaseModel):
     """Agent → Controller: declare identity and capabilities."""
 
     type: Literal[MessageType.REGISTER] = MessageType.REGISTER
-    agent_id: UUID
     agent_name: str
     capabilities: list[Product]
+
+
+class RegisterAckMessage(BaseModel):
+    """Controller → Agent: confirm registration with server-assigned ID."""
+
+    type: Literal[MessageType.REGISTER_ACK] = MessageType.REGISTER_ACK
+    agent_id: UUID
 
 
 class HeartbeatMessage(BaseModel):
@@ -39,6 +46,7 @@ class JobAssignMessage(BaseModel):
     type: Literal[MessageType.JOB_ASSIGN] = MessageType.JOB_ASSIGN
     job_id: UUID
     product: Product
+    duration: float | None = None
 
 
 class JobStatusMessage(BaseModel):
@@ -51,9 +59,23 @@ class JobStatusMessage(BaseModel):
     result: str | None = None
 
 
+class DisconnectMessage(BaseModel):
+    """Controller → Agent: instruct agent to terminate."""
+
+    type: Literal[MessageType.DISCONNECT] = MessageType.DISCONNECT
+    reason: str = "Removed by controller"
+
+
 # Discriminated union for parsing incoming WebSocket messages
 WSMessage = Annotated[
-    Union[RegisterMessage, HeartbeatMessage, JobAssignMessage, JobStatusMessage],
+    Union[
+        RegisterMessage,
+        RegisterAckMessage,
+        HeartbeatMessage,
+        JobAssignMessage,
+        JobStatusMessage,
+        DisconnectMessage,
+    ],
     Field(discriminator="type"),
 ]
 

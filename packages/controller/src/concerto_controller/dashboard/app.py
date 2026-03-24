@@ -1,19 +1,104 @@
 from __future__ import annotations
 
-import asyncio
 import argparse
-import logging
+import asyncio
 from datetime import datetime, timezone
 
 import httpx
+from concerto_shared.enums import Product
+from loguru import logger
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
 from textual.reactive import reactive
-from textual.widgets import DataTable, Footer, Header, Log, Static
-
-logger = logging.getLogger(__name__)
+from textual.screen import ModalScreen
+from textual.widgets import (
+    DataTable,
+    Footer,
+    Header,
+    Input,
+    Label,
+    Log,
+    OptionList,
+    Static,
+)
+from textual.widgets.option_list import Option
 
 REFRESH_INTERVAL = 2.0  # seconds
+
+
+class JobSubmitResult:
+    """Result returned from the job submission screen."""
+
+    def __init__(self, product: Product, duration: float | None) -> None:
+        self.product = product
+        self.duration = duration
+
+
+class JobSubmitScreen(ModalScreen[JobSubmitResult | None]):
+    """Modal dialog to select a product and set duration for a new job."""
+
+    CSS = """
+    JobSubmitScreen {
+        align: center middle;
+    }
+    #picker-container {
+        width: 55;
+        height: auto;
+        max-height: 24;
+        border: thick $accent;
+        background: $surface;
+        padding: 1 2;
+    }
+    #picker-title {
+        text-style: bold;
+        margin-bottom: 1;
+    }
+    #duration-label {
+        margin-top: 1;
+    }
+    #duration-input {
+        margin-bottom: 1;
+    }
+    """
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._selected_product: Product | None = None
+
+    def compose(self) -> ComposeResult:
+        with Container(id="picker-container"):
+            yield Label("Select product for new job:", id="picker-title")
+            option_list = OptionList(id="product-options")
+            for p in Product:
+                option_list.add_option(Option(p.value, id=p.value))
+            yield option_list
+            yield Label("Duration in seconds (leave empty for random):", id="duration-label")
+            yield Input(placeholder="e.g. 5.0", id="duration-input")
+
+    def on_option_list_option_selected(
+        self, event: OptionList.OptionSelected
+    ) -> None:
+        self._selected_product = Product(event.option.id)
+        self._try_submit()
+
+    def _try_submit(self) -> None:
+        if self._selected_product is None:
+            return
+        raw = self.query_one("#duration-input", Input).value.strip()
+        duration: float | None = None
+        if raw:
+            try:
+                duration = float(raw)
+                if duration <= 0:
+                    duration = None
+            except ValueError:
+                duration = None
+        self.dismiss(JobSubmitResult(self._selected_product, duration))
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
 
 
 class ConcertoDashboard(App):
@@ -58,19 +143,23 @@ class ConcertoDashboard(App):
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh"),
+        ("d", "remove_agent", "Remove Agent"),
+        ("n", "new_job", "New Job"),
     ]
 
     def __init__(self, controller_url: str = "http://localhost:8000") -> None:
         super().__init__()
         self.controller_url = controller_url
         self._client = httpx.AsyncClient(base_url=controller_url, timeout=5.0)
+        # Map row keys → agent IDs for the agents table
+        self._agent_row_ids: dict[str, str] = {}
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Container(id="main"):
             with Container(id="agents-panel"):
                 yield Static("Fleet Status", classes="panel-title")
-                yield DataTable(id="agents-table")
+                yield DataTable(id="agents-table", cursor_type="row")
             with Container(id="jobs-panel"):
                 yield Static("Job Queue", classes="panel-title")
                 yield DataTable(id="jobs-table")
@@ -85,11 +174,15 @@ class ConcertoDashboard(App):
     async def on_mount(self) -> None:
         # Set up agent table columns
         agents_table = self.query_one("#agents-table", DataTable)
-        agents_table.add_columns("Name", "Status", "Capabilities", "Current Job", "Last HB")
+        agents_table.add_columns(
+            "Name", "Status", "Capabilities", "Current Job", "Last HB"
+        )
 
         # Set up jobs table columns
         jobs_table = self.query_one("#jobs-table", DataTable)
-        jobs_table.add_columns("ID (short)", "Product", "Status", "Assigned To", "Created")
+        jobs_table.add_columns(
+            "ID (short)", "Product", "Status", "Assigned To", "Created"
+        )
 
         # Start polling
         self.set_interval(REFRESH_INTERVAL, self._poll_data)
@@ -113,6 +206,7 @@ class ConcertoDashboard(App):
 
         table = self.query_one("#agents-table", DataTable)
         table.clear()
+        self._agent_row_ids.clear()
 
         status_colors = {
             "online": "green",
@@ -124,7 +218,11 @@ class ConcertoDashboard(App):
             status = agent["status"]
             color = status_colors.get(status, "white")
             caps = ", ".join(agent.get("capabilities", []))
-            job_id = str(agent.get("current_job_id", ""))[:8] if agent.get("current_job_id") else "—"
+            job_id = (
+                str(agent.get("current_job_id", ""))[:8]
+                if agent.get("current_job_id")
+                else "—"
+            )
             last_hb = agent.get("last_heartbeat", "—")
             if last_hb and last_hb != "—":
                 try:
@@ -134,13 +232,14 @@ class ConcertoDashboard(App):
                 except (ValueError, TypeError):
                     pass
 
-            table.add_row(
+            row_key = table.add_row(
                 agent["name"],
                 f"[{color}]{status}[/{color}]",
                 caps,
                 job_id,
                 last_hb,
             )
+            self._agent_row_ids[str(row_key)] = agent["id"]
 
     async def _refresh_jobs(self) -> None:
         resp = await self._client.get("/jobs")
@@ -162,7 +261,11 @@ class ConcertoDashboard(App):
             status = job["status"]
             color = status_colors.get(status, "white")
             short_id = str(job["id"])[:8]
-            assigned = str(job.get("assigned_agent_id", ""))[:8] if job.get("assigned_agent_id") else "—"
+            assigned = (
+                str(job.get("assigned_agent_id", ""))[:8]
+                if job.get("assigned_agent_id")
+                else "—"
+            )
             created = job.get("created_at", "—")
             if created != "—":
                 try:
@@ -203,6 +306,68 @@ class ConcertoDashboard(App):
 
     def action_refresh(self) -> None:
         asyncio.create_task(self._poll_data())
+
+    def action_remove_agent(self) -> None:
+        """Remove the currently selected agent."""
+        asyncio.create_task(self._remove_selected_agent())
+
+    async def _remove_selected_agent(self) -> None:
+        event_log = self.query_one("#event-log", Log)
+        table = self.query_one("#agents-table", DataTable)
+
+        if table.row_count == 0:
+            event_log.write_line("[yellow]No agents to remove[/yellow]")
+            return
+
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        agent_id = self._agent_row_ids.get(str(row_key))
+        if not agent_id:
+            event_log.write_line("[yellow]No agent selected[/yellow]")
+            return
+
+        try:
+            resp = await self._client.delete(f"/agents/{agent_id}")
+            if resp.status_code == 204:
+                event_log.write_line(
+                    f"[green]Agent {agent_id[:8]}… removed[/green]"
+                )
+                await self._poll_data()
+            else:
+                event_log.write_line(
+                    f"[red]Failed to remove agent: {resp.status_code}[/red]"
+                )
+        except Exception as e:
+            event_log.write_line(f"[red]Error removing agent: {e}[/red]")
+
+    def action_new_job(self) -> None:
+        """Open job submission screen."""
+        self.push_screen(JobSubmitScreen(), callback=self._on_job_submitted)
+
+    def _on_job_submitted(self, result: JobSubmitResult | None) -> None:
+        if result is not None:
+            asyncio.create_task(self._submit_job(result.product, result.duration))
+
+    async def _submit_job(self, product: Product, duration: float | None) -> None:
+        event_log = self.query_one("#event-log", Log)
+        try:
+            payload: dict = {"product": product.value}
+            if duration is not None:
+                payload["duration"] = duration
+            resp = await self._client.post("/jobs", json=payload)
+            if resp.status_code == 201:
+                job = resp.json()
+                dur_str = f", duration={duration}s" if duration else ""
+                event_log.write_line(
+                    f"[green]Job {str(job['id'])[:8]}… submitted "
+                    f"(product={product.value}{dur_str})[/green]"
+                )
+                await self._poll_data()
+            else:
+                event_log.write_line(
+                    f"[red]Failed to submit job: {resp.status_code}[/red]"
+                )
+        except Exception as e:
+            event_log.write_line(f"[red]Error submitting job: {e}[/red]")
 
     async def on_unmount(self) -> None:
         await self._client.aclose()

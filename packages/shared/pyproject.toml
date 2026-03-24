@@ -5,6 +5,7 @@ description = "Shared models, enums, and message schemas for Concerto TSS"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
+    "loguru>=0.7",
 ]
 
 [build-system]

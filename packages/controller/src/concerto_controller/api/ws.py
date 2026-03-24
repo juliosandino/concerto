@@ -1,24 +1,22 @@
 from __future__ import annotations
 
-import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from sqlalchemy import select
-
+from concerto_controller.db.models import AgentRecord, JobRecord
+from concerto_controller.db.session import async_session
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import (
     HeartbeatMessage,
     JobStatusMessage,
     MessageType,
+    RegisterAckMessage,
     RegisterMessage,
     parse_message,
 )
-from concerto_controller.db.models import AgentRecord, JobRecord
-from concerto_controller.db.session import async_session
-
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from loguru import logger
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -39,18 +37,30 @@ async def agent_websocket(ws: WebSocket) -> None:
             await ws.close(code=4001, reason="First message must be register")
             return
 
-        agent_id = msg.agent_id
         now = datetime.now(timezone.utc)
 
         async with async_session() as session:
-            # Upsert agent record
-            agent = await session.get(AgentRecord, agent_id)
+            # Look up existing agent by name for reconnection
+            result = await session.execute(
+                select(AgentRecord).where(AgentRecord.name == msg.agent_name)
+            )
+            agent = result.scalar_one_or_none()
+
+            if agent and agent.id in connections:
+                # Agent with this name is already connected — reject
+                await ws.close(
+                    code=4002,
+                    reason=f"Agent '{msg.agent_name}' is already connected",
+                )
+                return
+
             if agent:
-                agent.name = msg.agent_name
+                agent_id = agent.id
                 agent.capabilities = [str(c) for c in msg.capabilities]
                 agent.status = AgentStatus.ONLINE
                 agent.last_heartbeat = now
             else:
+                agent_id = uuid.uuid4()
                 agent = AgentRecord(
                     id=agent_id,
                     name=msg.agent_name,
@@ -61,8 +71,12 @@ async def agent_websocket(ws: WebSocket) -> None:
                 session.add(agent)
             await session.commit()
 
+        # Send the server-assigned ID back to the agent
+        ack = RegisterAckMessage(agent_id=agent_id)
+        await ws.send_text(ack.model_dump_json())
+
         connections[agent_id] = ws
-        logger.info("Agent %s (%s) registered with capabilities %s", msg.agent_name, agent_id, msg.capabilities)
+        logger.info(f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}")
 
         # Trigger dispatcher for any queued jobs
         async with async_session() as session:
@@ -86,9 +100,9 @@ async def agent_websocket(ws: WebSocket) -> None:
                 await _handle_job_status(msg)
 
     except WebSocketDisconnect:
-        logger.info("Agent %s disconnected", agent_id)
+        logger.info(f"Agent {agent_id} disconnected")
     except Exception:
-        logger.exception("Error in agent WebSocket for %s", agent_id)
+        logger.exception(f"Error in agent WebSocket for {agent_id}")
     finally:
         if agent_id:
             connections.pop(agent_id, None)
@@ -100,7 +114,7 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
     async with async_session() as session:
         job = await session.get(JobRecord, msg.job_id)
         if not job:
-            logger.warning("Job status update for unknown job %s", msg.job_id)
+            logger.warning(f"Job status update for unknown job {msg.job_id}")
             return
 
         now = datetime.now(timezone.utc)
@@ -143,7 +157,7 @@ async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
         if agent.current_job_id:
             job = await session.get(JobRecord, agent.current_job_id)
             if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
-                logger.info("Re-queuing job %s from disconnected agent %s", job.id, agent_id)
+                logger.info(f"Re-queuing job {job.id} from disconnected agent {agent_id}")
                 job.status = JobStatus.QUEUED
                 job.assigned_agent_id = None
                 job.started_at = None

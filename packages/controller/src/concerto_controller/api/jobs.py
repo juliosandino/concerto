@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import uuid
 
+from concerto_controller.db.models import JobRecord
+from concerto_controller.db.session import get_session
+from concerto_shared.enums import JobStatus, Product
+from concerto_shared.models import JobInfo
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from concerto_shared.enums import JobStatus, Product
-from concerto_shared.models import JobInfo
-from concerto_controller.db.models import JobRecord
-from concerto_controller.db.session import get_session
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -26,6 +25,7 @@ from pydantic import BaseModel
 
 class JobCreateBody(BaseModel):
     product: Product
+    duration: float | None = None
 
 
 @router.post("", status_code=201)
@@ -34,7 +34,12 @@ async def create_job(
     session: AsyncSession = Depends(get_session),
 ) -> JobInfo:
     """Submit a new test job to the queue."""
-    job = JobRecord(id=uuid.uuid4(), product=body.product, status=JobStatus.QUEUED)
+    job = JobRecord(
+        id=uuid.uuid4(),
+        product=body.product,
+        status=JobStatus.QUEUED,
+        duration=body.duration,
+    )
     session.add(job)
     await session.commit()
     await session.refresh(job)
@@ -85,4 +90,5 @@ def _to_info(job: JobRecord) -> JobInfo:
         started_at=job.started_at,
         completed_at=job.completed_at,
         result=job.result,
+        duration=job.duration,
     )

@@ -2,31 +2,20 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 
 from concerto_chaos.config import CHAOS_PRESETS, ChaosSettings
 from concerto_chaos.profiles import create_profile
 from concerto_chaos.simulator import run_chaos_agent
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 async def _run(num_agents: int, controller_url: str, chaos_level: str) -> None:
     params = CHAOS_PRESETS.get(chaos_level)
     if not params:
-        logger.error("Unknown chaos level: %s (use low/medium/high)", chaos_level)
+        logger.error(f"Unknown chaos level: {chaos_level} (use low/medium/high)")
         return
 
-    logger.info(
-        "Launching %d chaos agents at %s (chaos_level=%s)",
-        num_agents,
-        controller_url,
-        chaos_level,
-    )
+    logger.info(f"Launching {num_agents} chaos agents at {controller_url} (chaos_level={chaos_level})")
 
     async with asyncio.TaskGroup() as tg:
         for i in range(num_agents):
@@ -42,7 +31,9 @@ async def _run(num_agents: int, controller_url: str, chaos_level: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Concerto Chaos Simulator")
-    parser.add_argument("--agents", "-n", type=int, default=5, help="Number of mock agents")
+    parser.add_argument(
+        "--agents", "-n", type=int, default=5, help="Number of mock agents"
+    )
     parser.add_argument(
         "--controller-url",
         default="ws://localhost:8000/ws/agent",

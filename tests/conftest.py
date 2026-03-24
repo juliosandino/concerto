@@ -1,4 +1,5 @@
 """Shared test fixtures for Concerto TSS tests."""
+
 from __future__ import annotations
 
 import asyncio

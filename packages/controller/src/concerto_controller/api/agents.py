@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import uuid
 
+from concerto_controller.db.models import AgentRecord, JobRecord
+from concerto_controller.db.session import get_session
+from concerto_shared.enums import AgentStatus, JobStatus
+from concerto_shared.messages import DisconnectMessage
+from concerto_shared.models import AgentInfo
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from concerto_shared.enums import AgentStatus
-from concerto_shared.models import AgentInfo
-from concerto_controller.db.models import AgentRecord
-from concerto_controller.db.session import get_session
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -37,6 +37,45 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return _to_info(agent)
+
+
+@router.delete("/{agent_id}", status_code=204)
+async def remove_agent(
+    agent_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Remove an agent. If online, sends a disconnect and closes the WS."""
+    agent = await session.get(AgentRecord, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # If the agent has an active WS connection, tell it to terminate
+    from concerto_controller.api.ws import connections
+
+    ws = connections.pop(agent_id, None)
+    if ws:
+        try:
+            msg = DisconnectMessage(reason="Removed by controller")
+            await ws.send_text(msg.model_dump_json())
+            await ws.close(code=1000, reason="Agent removed")
+        except Exception:
+            pass  # best-effort; agent may already be gone
+
+    # Re-queue any job the agent was working on
+    if agent.current_job_id:
+        job = await session.get(JobRecord, agent.current_job_id)
+        if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
+            job.status = JobStatus.QUEUED
+            job.assigned_agent_id = None
+            job.started_at = None
+
+    await session.delete(agent)
+    await session.commit()
+
+    # Try to dispatch any re-queued jobs
+    from concerto_controller.scheduler.dispatcher import try_dispatch
+
+    await try_dispatch(session)
 
 
 def _to_info(agent: AgentRecord) -> AgentInfo:

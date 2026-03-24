@@ -1,16 +1,18 @@
 """Tests for WebSocket message serialization and parsing."""
+
 from __future__ import annotations
 
 import uuid
 
 import pytest
-
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import (
+    DisconnectMessage,
     HeartbeatMessage,
     JobAssignMessage,
     JobStatusMessage,
     MessageType,
+    RegisterAckMessage,
     RegisterMessage,
     parse_message,
 )
@@ -18,27 +20,48 @@ from concerto_shared.messages import (
 
 class TestRegisterMessage:
     def test_serialization_roundtrip(self):
-        agent_id = uuid.uuid4()
         msg = RegisterMessage(
-            agent_id=agent_id,
             agent_name="test-agent",
             capabilities=[Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY],
         )
         raw = msg.model_dump_json()
         parsed = parse_message(raw)
         assert isinstance(parsed, RegisterMessage)
-        assert parsed.agent_id == agent_id
         assert parsed.agent_name == "test-agent"
         assert parsed.capabilities == [Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY]
         assert parsed.type == MessageType.REGISTER
 
     def test_type_field_is_set_automatically(self):
         msg = RegisterMessage(
-            agent_id=uuid.uuid4(),
             agent_name="test",
             capabilities=[],
         )
         assert msg.type == MessageType.REGISTER
+
+
+class TestRegisterAckMessage:
+    def test_serialization_roundtrip(self):
+        agent_id = uuid.uuid4()
+        msg = RegisterAckMessage(agent_id=agent_id)
+        raw = msg.model_dump_json()
+        parsed = parse_message(raw)
+        assert isinstance(parsed, RegisterAckMessage)
+        assert parsed.agent_id == agent_id
+        assert parsed.type == MessageType.REGISTER_ACK
+
+
+class TestDisconnectMessage:
+    def test_serialization_roundtrip(self):
+        msg = DisconnectMessage(reason="test removal")
+        raw = msg.model_dump_json()
+        parsed = parse_message(raw)
+        assert isinstance(parsed, DisconnectMessage)
+        assert parsed.reason == "test removal"
+        assert parsed.type == MessageType.DISCONNECT
+
+    def test_default_reason(self):
+        msg = DisconnectMessage()
+        assert msg.reason == "Removed by controller"
 
 
 class TestHeartbeatMessage:

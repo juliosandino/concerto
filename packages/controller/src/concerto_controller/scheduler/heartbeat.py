@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
-
-from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_controller.config import settings
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_controller.scheduler.dispatcher import try_dispatch
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+from concerto_shared.enums import AgentStatus, JobStatus
+from sqlalchemy import select
 
 
 async def heartbeat_monitor() -> None:
@@ -20,11 +17,7 @@ async def heartbeat_monitor() -> None:
 
     Runs in a loop every HEARTBEAT_CHECK_INTERVAL_SEC seconds.
     """
-    logger.info(
-        "Heartbeat monitor started (timeout=%ds, interval=%ds)",
-        settings.heartbeat_timeout_sec,
-        settings.heartbeat_check_interval_sec,
-    )
+    logger.info(f"Heartbeat monitor started (timeout={settings.heartbeat_timeout_sec}s, interval={settings.heartbeat_check_interval_sec}s)")
 
     while True:
         try:
@@ -39,7 +32,9 @@ async def heartbeat_monitor() -> None:
 
 async def _check_stale_agents() -> None:
     """Find agents whose heartbeat has expired and handle them."""
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.heartbeat_timeout_sec)
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        seconds=settings.heartbeat_timeout_sec
+    )
 
     async with async_session() as session:
         stmt = (
@@ -57,13 +52,7 @@ async def _check_stale_agents() -> None:
             return
 
         for agent in stale_agents:
-            logger.warning(
-                "Agent %s (%s) heartbeat expired (last: %s, cutoff: %s)",
-                agent.name,
-                agent.id,
-                agent.last_heartbeat,
-                cutoff,
-            )
+            logger.warning(f"Agent {agent.name} ({agent.id}) heartbeat expired (last: {agent.last_heartbeat}, cutoff: {cutoff})")
 
             # Close the WebSocket if still connected
             from concerto_controller.api.ws import connections
@@ -81,7 +70,7 @@ async def _check_stale_agents() -> None:
             if agent.current_job_id:
                 job = await session.get(JobRecord, agent.current_job_id)
                 if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
-                    logger.info("Re-queuing job %s from stale agent %s", job.id, agent.id)
+                    logger.info(f"Re-queuing job {job.id} from stale agent {agent.id}")
                     job.status = JobStatus.QUEUED
                     job.assigned_agent_id = None
                     job.started_at = None

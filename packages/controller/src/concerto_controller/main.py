@@ -5,20 +5,29 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
-
 from concerto_controller.api.agents import router as agents_router
 from concerto_controller.api.jobs import router as jobs_router
 from concerto_controller.api.ws import router as ws_router
 from concerto_controller.config import settings
 from concerto_controller.db.session import init_db
 from concerto_controller.scheduler.heartbeat import heartbeat_monitor
+from fastapi import FastAPI
+from loguru import logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
+
+class _InterceptHandler(logging.Handler):
+    """Route standard-library log records into loguru."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        level: str | int
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
+
+
+logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
 
 
 @asynccontextmanager
@@ -30,7 +39,7 @@ async def lifespan(app: FastAPI):
 
     # Start heartbeat monitor
     hb_task = asyncio.create_task(heartbeat_monitor())
-    logger.info("Controller started on %s:%s", settings.ws_host, settings.ws_port)
+    logger.info(f"Controller started on {settings.ws_host}:{settings.ws_port}")
 
     yield
 

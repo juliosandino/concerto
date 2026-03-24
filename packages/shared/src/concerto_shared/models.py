@@ -3,9 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
 from concerto_shared.enums import AgentStatus, JobStatus, Product
+from pydantic import BaseModel, Field
 
 
 class AgentInfo(BaseModel):
@@ -29,4 +28,7 @@ class JobInfo(BaseModel):
     created_at: datetime
     started_at: datetime | None = None
     completed_at: datetime | None = None
-    result: str | None = Field(default=None, description="Result summary or error message")
+    result: str | None = Field(
+        default=None, description="Result summary or error message"
+    )
+    duration: float | None = None

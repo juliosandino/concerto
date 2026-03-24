@@ -1,14 +1,14 @@
 """Tests for the agent job executor."""
+
 from __future__ import annotations
 
 import uuid
 from unittest.mock import AsyncMock
 
 import pytest
-
+from concerto_agent.executor import execute_job
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import JobAssignMessage, JobStatusMessage
-from concerto_agent.executor import execute_job
 
 
 class TestExecuteJob:

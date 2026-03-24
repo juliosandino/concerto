@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
 from typing import Callable
 
 import websockets
-from websockets.asyncio.client import ClientConnection
-
 from concerto_shared.enums import Product
 from concerto_shared.messages import (
+    DisconnectMessage,
     HeartbeatMessage,
+    RegisterAckMessage,
     RegisterMessage,
     WSMessage,
     parse_message,
 )
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+from websockets.asyncio.client import ClientConnection
 
 
 class AgentClient:
@@ -25,7 +24,6 @@ class AgentClient:
 
     def __init__(
         self,
-        agent_id: uuid.UUID,
         agent_name: str,
         capabilities: list[Product],
         controller_url: str,
@@ -34,7 +32,6 @@ class AgentClient:
         reconnect_max_delay: float = 30.0,
         on_message: Callable[[WSMessage], asyncio.Future] | None = None,
     ) -> None:
-        self.agent_id = agent_id
         self.agent_name = agent_name
         self.capabilities = capabilities
         self.controller_url = controller_url
@@ -42,6 +39,7 @@ class AgentClient:
         self.reconnect_base_delay = reconnect_base_delay
         self.reconnect_max_delay = reconnect_max_delay
         self.on_message = on_message
+        self.agent_id: uuid.UUID | None = None
         self._ws: ClientConnection | None = None
         self._running = False
 
@@ -56,10 +54,22 @@ class AgentClient:
                     self._ws = ws
                     delay = self.reconnect_base_delay  # reset on successful connect
                     await self._session(ws)
-            except (ConnectionError, OSError, websockets.exceptions.WebSocketException) as e:
+            except (
+                ConnectionError,
+                OSError,
+                websockets.exceptions.WebSocketException,
+            ) as e:
                 if not self._running:
                     break
-                logger.warning("Connection lost (%s), reconnecting in %.1fs...", e, delay)
+                # If the server rejected us with 4002, stop immediately
+                if (
+                    isinstance(e, websockets.exceptions.ConnectionClosedError)
+                    and e.rcvd is not None
+                    and e.rcvd.code == 4002
+                ):
+                    logger.error(f"Registration rejected: {e.rcvd.reason} — stopping agent")
+                    break
+                logger.warning(f"Connection lost ({e}), reconnecting in {delay:.1f}s...")
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, self.reconnect_max_delay)
             except asyncio.CancelledError:
@@ -80,12 +90,19 @@ class AgentClient:
         """Run a single connected session: register, heartbeat, receive."""
         # Register
         reg = RegisterMessage(
-            agent_id=self.agent_id,
             agent_name=self.agent_name,
             capabilities=self.capabilities,
         )
         await ws.send(reg.model_dump_json())
-        logger.info("Registered as %s (%s)", self.agent_name, self.agent_id)
+
+        # Wait for server-assigned agent ID
+        raw = await ws.recv()
+        ack = parse_message(raw)
+        if not isinstance(ack, RegisterAckMessage):
+            logger.error(f"Expected RegisterAck, got {type(ack).__name__}")
+            return
+        self.agent_id = ack.agent_id
+        logger.info(f"Registered as {self.agent_name} (id={self.agent_id})")
 
         # Run heartbeat and receiver concurrently
         async with asyncio.TaskGroup() as tg:
@@ -103,5 +120,10 @@ class AgentClient:
         """Receive and dispatch incoming messages from the controller."""
         async for raw in ws:
             msg = parse_message(raw)
+            if isinstance(msg, DisconnectMessage):
+                logger.info(f"Received disconnect: {msg.reason} — terminating")
+                self._running = False
+                await ws.close()
+                return
             if self.on_message:
                 await self.on_message(msg)

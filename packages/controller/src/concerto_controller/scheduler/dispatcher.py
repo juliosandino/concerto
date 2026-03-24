@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import JobAssignMessage
-from concerto_controller.db.models import AgentRecord, JobRecord
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def try_dispatch(session: AsyncSession) -> None:
@@ -49,7 +46,7 @@ async def try_dispatch(session: AsyncSession) -> None:
         agent = agent_result.scalar_one_or_none()
 
         if not agent:
-            logger.debug("No available agent for job %s (product=%s)", job.id, job.product)
+            logger.debug(f"No available agent for job {job.id} (product={job.product})")
             continue
 
         # Assign the job
@@ -60,7 +57,7 @@ async def try_dispatch(session: AsyncSession) -> None:
 
         await session.commit()
 
-        logger.info("Dispatched job %s → agent %s (%s)", job.id, agent.name, agent.id)
+        logger.info(f"Dispatched job {job.id} → agent {agent.name} ({agent.id})")
 
         # Send assignment over WebSocket
         await _send_job_assignment(agent.id, job)
@@ -72,11 +69,11 @@ async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> None:
 
     ws = connections.get(agent_id)
     if not ws:
-        logger.warning("No WebSocket connection for agent %s to send job assignment", agent_id)
+        logger.warning(f"No WebSocket connection for agent {agent_id} to send job assignment")
         return
 
-    msg = JobAssignMessage(job_id=job.id, product=job.product)
+    msg = JobAssignMessage(job_id=job.id, product=job.product, duration=job.duration)
     try:
         await ws.send_text(msg.model_dump_json())
     except Exception:
-        logger.exception("Failed to send job assignment to agent %s", agent_id)
+        logger.exception(f"Failed to send job assignment to agent {agent_id}")
