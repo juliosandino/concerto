@@ -45,7 +45,10 @@ async def remove_agent(
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Remove an agent. If online, sends a disconnect and closes the WS."""
-    agent = await session.get(AgentRecord, agent_id)
+    result = await session.execute(
+        select(AgentRecord).where(AgentRecord.id == agent_id).with_for_update()
+    )
+    agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -61,13 +64,15 @@ async def remove_agent(
         except Exception:
             pass  # best-effort; agent may already be gone
 
-    # Re-queue any job the agent was working on
-    if agent.current_job_id:
-        job = await session.get(JobRecord, agent.current_job_id)
-        if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
+    # Re-queue active jobs and clear FK on finished jobs
+    assigned_jobs = await session.execute(
+        select(JobRecord).where(JobRecord.assigned_agent_id == agent_id)
+    )
+    for job in assigned_jobs.scalars().all():
+        if job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
             job.status = JobStatus.QUEUED
-            job.assigned_agent_id = None
             job.started_at = None
+        job.assigned_agent_id = None
 
     await session.delete(agent)
     await session.commit()

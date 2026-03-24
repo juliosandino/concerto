@@ -31,11 +31,20 @@ async def try_dispatch(session: AsyncSession) -> None:
         return
 
     for job in queued_jobs:
-        # Find an online agent that supports this product
+        # Only consider agents that actually have an active WS connection
+        from concerto_controller.api.ws import connections
+
+        connected_ids = list(connections.keys())
+        if not connected_ids:
+            logger.debug(f"No connected agents for job {job.id}")
+            continue
+
+        # Find an online, connected agent that supports this product
         agent_stmt = (
             select(AgentRecord)
             .where(
                 AgentRecord.status == AgentStatus.ONLINE,
+                AgentRecord.id.in_(connected_ids),
                 AgentRecord.capabilities.any(str(job.product)),
             )
             .order_by(AgentRecord.last_heartbeat.asc())  # least-recently-active first
@@ -59,8 +68,17 @@ async def try_dispatch(session: AsyncSession) -> None:
 
         logger.info(f"Dispatched job {job.id} → agent {agent.name} ({agent.id})")
 
-        # Send assignment over WebSocket
-        await _send_job_assignment(agent.id, job)
+        # Send assignment over WebSocket; undo if delivery fails
+        if not await _send_job_assignment(agent.id, job):
+            job.status = JobStatus.QUEUED
+            job.assigned_agent_id = None
+            job.started_at = None
+            agent.status = AgentStatus.ONLINE
+            agent.current_job_id = None
+            await session.commit()
+            logger.warning(
+                f"Reverted dispatch of job {job.id} — agent {agent.name} unreachable"
+            )
 
     # Notify dashboards of dispatch changes
     from concerto_controller.api.dashboard_ws import notify_dashboards
@@ -68,8 +86,11 @@ async def try_dispatch(session: AsyncSession) -> None:
     await notify_dashboards()
 
 
-async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> None:
-    """Send a JobAssignMessage to the agent over its WebSocket connection."""
+async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> bool:
+    """Send a JobAssignMessage to the agent over its WebSocket connection.
+
+    Returns True if the message was delivered, False otherwise.
+    """
     from concerto_controller.api.ws import connections
 
     ws = connections.get(agent_id)
@@ -77,10 +98,12 @@ async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> None:
         logger.warning(
             f"No WebSocket connection for agent {agent_id} to send job assignment"
         )
-        return
+        return False
 
     msg = JobAssignMessage(job_id=job.id, product=job.product, duration=job.duration)
     try:
         await ws.send_text(msg.model_dump_json())
+        return True
     except Exception:
         logger.exception(f"Failed to send job assignment to agent {agent_id}")
+        return False

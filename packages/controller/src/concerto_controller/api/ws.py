@@ -112,8 +112,13 @@ async def agent_websocket(ws: WebSocket) -> None:
         logger.exception(f"Error in agent WebSocket for {agent_id}")
     finally:
         if agent_id:
-            connections.pop(agent_id, None)
-            await _handle_agent_disconnect(agent_id)
+            # Only run disconnect logic if we still owned the connection.
+            # When the DELETE handler removes an agent it pops the connection
+            # first, so this pop returns None and we skip the redundant (and
+            # potentially conflicting) disconnect handler.
+            was_tracked = connections.pop(agent_id, None) is not None
+            if was_tracked:
+                await _handle_agent_disconnect(agent_id)
 
 
 async def _handle_job_status(msg: JobStatusMessage) -> None:

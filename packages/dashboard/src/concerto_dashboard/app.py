@@ -23,8 +23,8 @@ from textual.widgets import (
     Header,
     Input,
     Label,
-    Log,
     OptionList,
+    RichLog,
     Static,
 )
 from textual.widgets.option_list import Option
@@ -150,7 +150,9 @@ class ConcertoDashboard(App):
         ("n", "new_job", "New Job"),
     ]
 
-    def __init__(self, controller_ws_url: str = "ws://localhost:8000/ws/dashboard") -> None:
+    def __init__(
+        self, controller_ws_url: str = "ws://localhost:8000/ws/dashboard"
+    ) -> None:
         super().__init__()
         self.controller_ws_url = controller_ws_url
         self._ws: websockets.ClientConnection | None = None
@@ -172,7 +174,7 @@ class ConcertoDashboard(App):
                 yield Static(id="stats-content")
             with Container(id="log-panel"):
                 yield Static("Event Log", classes="panel-title")
-                yield Log(id="event-log")
+                yield RichLog(id="event-log", markup=True)
         yield Footer()
 
     async def on_mount(self) -> None:
@@ -195,14 +197,14 @@ class ConcertoDashboard(App):
         """Maintain a persistent WebSocket connection with reconnection."""
         backoff = 1.0
         max_backoff = 30.0
-        event_log = self.query_one("#event-log", Log)
+        event_log = self.query_one("#event-log", RichLog)
 
         while True:
             try:
                 async with websockets.connect(self.controller_ws_url) as ws:
                     self._ws = ws
                     backoff = 1.0
-                    event_log.write_line("[green]Connected to controller[/green]")
+                    event_log.write("[green]Connected to controller[/green]")
 
                     async for raw in ws:
                         try:
@@ -216,7 +218,7 @@ class ConcertoDashboard(App):
                 return
             except Exception as exc:
                 self._ws = None
-                event_log.write_line(
+                event_log.write(
                     f"[red]Connection lost ({exc}), retrying in {backoff:.0f}s…[/red]"
                 )
                 await asyncio.sleep(backoff)
@@ -329,34 +331,34 @@ class ConcertoDashboard(App):
 
     async def _send_command(self, msg) -> None:
         """Send a command message over the dashboard WebSocket."""
-        event_log = self.query_one("#event-log", Log)
+        event_log = self.query_one("#event-log", RichLog)
         if self._ws is None:
-            event_log.write_line("[red]Not connected to controller[/red]")
+            event_log.write("[red]Not connected to controller[/red]")
             return
         try:
             await self._ws.send(msg.model_dump_json())
         except Exception as exc:
-            event_log.write_line(f"[red]Send error: {exc}[/red]")
+            event_log.write(f"[red]Send error: {exc}[/red]")
 
     def action_remove_agent(self) -> None:
         """Remove the currently selected agent."""
         asyncio.create_task(self._remove_selected_agent())
 
     async def _remove_selected_agent(self) -> None:
-        event_log = self.query_one("#event-log", Log)
+        event_log = self.query_one("#event-log", RichLog)
         table = self.query_one("#agents-table", DataTable)
 
         if table.row_count == 0:
-            event_log.write_line("[yellow]No agents to remove[/yellow]")
+            event_log.write("[yellow]No agents to remove[/yellow]")
             return
 
         row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
         agent_id = self._agent_row_ids.get(str(row_key))
         if not agent_id:
-            event_log.write_line("[yellow]No agent selected[/yellow]")
+            event_log.write("[yellow]No agent selected[/yellow]")
             return
 
-        event_log.write_line(f"Removing agent {agent_id[:8]}…")
+        event_log.write(f"Removing agent {agent_id[:8]}…")
         await self._send_command(DashboardRemoveAgentMessage(agent_id=agent_id))
 
     def action_new_job(self) -> None:
@@ -368,9 +370,9 @@ class ConcertoDashboard(App):
             asyncio.create_task(self._submit_job(result.product, result.duration))
 
     async def _submit_job(self, product: Product, duration: float | None) -> None:
-        event_log = self.query_one("#event-log", Log)
+        event_log = self.query_one("#event-log", RichLog)
         dur_str = f", duration={duration}s" if duration else ""
-        event_log.write_line(f"Submitting job (product={product.value}{dur_str})…")
+        event_log.write(f"Submitting job (product={product.value}{dur_str})…")
         await self._send_command(
             DashboardCreateJobMessage(product=product, duration=duration)
         )

@@ -109,7 +109,10 @@ async def dashboard_websocket(ws: WebSocket) -> None:
 async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
     """Remove an agent (same logic as the REST DELETE endpoint)."""
     async with async_session() as session:
-        agent = await session.get(AgentRecord, agent_id)
+        result = await session.execute(
+            select(AgentRecord).where(AgentRecord.id == agent_id).with_for_update()
+        )
+        agent = result.scalar_one_or_none()
         if not agent:
             return
 
@@ -124,12 +127,14 @@ async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
             except Exception:
                 pass
 
-        if agent.current_job_id:
-            job = await session.get(JobRecord, agent.current_job_id)
-            if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
+        assigned_jobs = await session.execute(
+            select(JobRecord).where(JobRecord.assigned_agent_id == agent_id)
+        )
+        for job in assigned_jobs.scalars().all():
+            if job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
                 job.status = JobStatus.QUEUED
-                job.assigned_agent_id = None
                 job.started_at = None
+            job.assigned_agent_id = None
 
         await session.delete(agent)
         await session.commit()

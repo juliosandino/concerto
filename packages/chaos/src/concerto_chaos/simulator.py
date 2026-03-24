@@ -133,6 +133,7 @@ async def run_chaos_agent(
                         )
                         raise _ChaosDropout()
 
+                _disconnected = False
                 try:
                     async with asyncio.TaskGroup() as tg:
                         tg.create_task(heartbeat_loop())
@@ -140,9 +141,12 @@ async def run_chaos_agent(
                         tg.create_task(dropout_timer())
                 except* _ChaosDisconnected:
                     logger.info(f"[{agent_name}] Terminated by controller")
-                    return
+                    _disconnected = True
                 except* _ChaosDropout:
                     pass  # Expected — will reconnect
+
+                if _disconnected:
+                    return
 
         except (
             ConnectionError,

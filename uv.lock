@@ -186,6 +186,7 @@ source = { editable = "packages/chaos" }
 dependencies = [
     { name = "concerto-agent" },
     { name = "concerto-shared" },
+    { name = "httpx" },
     { name = "websockets" },
 ]
 
@@ -193,6 +194,7 @@ dependencies = [
 requires-dist = [
     { name = "concerto-agent", editable = "packages/agent" },
     { name = "concerto-shared", editable = "packages/shared" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
