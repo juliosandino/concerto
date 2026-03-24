@@ -31,6 +31,11 @@ concerto-dashboard = { workspace = true }
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.docformatter]
+wrap-summaries = 120
+wrap-descriptions = 120
+style = "sphinx"
+
 [tool.pylint.main]
 # Monorepo: pylint can't resolve workspace editable installs
 ignore-patterns = ["^\\..*", "^\\d.*"]

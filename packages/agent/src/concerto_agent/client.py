@@ -21,8 +21,8 @@ from websockets.asyncio.client import ClientConnection
 
 
 class AgentClient:
-    """WebSocket client that connects to the controller, registers, and
-    maintains a heartbeat loop while dispatching incoming messages."""
+    """WebSocket client that connects to the controller, registers, and maintains a heartbeat loop while dispatching
+    incoming messages."""
 
     def __init__(
         self,

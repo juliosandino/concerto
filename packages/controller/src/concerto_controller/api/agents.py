@@ -46,7 +46,10 @@ async def remove_agent(
     agent_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Remove an agent. If online, sends a disconnect and closes the WS."""
+    """Remove an agent.
+
+    If online, sends a disconnect and closes the WS.
+    """
     result = await session.execute(
         select(AgentRecord).where(AgentRecord.id == agent_id).with_for_update()
     )

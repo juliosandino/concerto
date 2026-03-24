@@ -21,8 +21,8 @@ async def execute_job(
 ) -> None:
     """Simulate executing a test job.
 
-    Sends RUNNING status, sleeps for a random duration, then sends
-    COMPLETED or FAILED based on failure_rate probability.
+    Sends RUNNING status, sleeps for a random duration, then sends COMPLETED or FAILED based on failure_rate
+    probability.
     """
     job_id = assignment.job_id
     logger.info(f"Starting job {job_id} (product={assignment.product})")

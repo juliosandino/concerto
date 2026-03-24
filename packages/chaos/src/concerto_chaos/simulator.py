@@ -66,8 +66,8 @@ async def run_chaos_agent(
 ) -> None:
     """Run a single mock agent with a chaos failure profile.
 
-    The agent connects, registers, sends heartbeats, handles jobs,
-    and may randomly disconnect or fail based on its profile.
+    The agent connects, registers, sends heartbeats, handles jobs, and may randomly disconnect or fail based on its
+    profile.
     """
     agent_id = uuid.uuid4()
     suffix = f"-{agent_index:03d}"
