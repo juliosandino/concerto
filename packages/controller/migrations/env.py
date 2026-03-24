@@ -1,14 +1,13 @@
 import asyncio
 
-from sqlalchemy import pool
-from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from alembic import context
+from concerto_controller.config import settings
 
 # Import models so autogenerate can detect them
 from concerto_controller.db.models import Base  # noqa: F401
-from concerto_controller.config import settings
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,7 +15,6 @@ config = context.config
 
 # Use the app's database URL (env var or default)
 config.set_main_option("sqlalchemy.url", settings.database_url)
-
 
 
 target_metadata = Base.metadata

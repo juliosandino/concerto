@@ -69,7 +69,9 @@ async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> None:
 
     ws = connections.get(agent_id)
     if not ws:
-        logger.warning(f"No WebSocket connection for agent {agent_id} to send job assignment")
+        logger.warning(
+            f"No WebSocket connection for agent {agent_id} to send job assignment"
+        )
         return
 
     msg = JobAssignMessage(job_id=job.id, product=job.product, duration=job.duration)

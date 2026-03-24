@@ -67,9 +67,13 @@ class AgentClient:
                     and e.rcvd is not None
                     and e.rcvd.code == 4002
                 ):
-                    logger.error(f"Registration rejected: {e.rcvd.reason} — stopping agent")
+                    logger.error(
+                        f"Registration rejected: {e.rcvd.reason} — stopping agent"
+                    )
                     break
-                logger.warning(f"Connection lost ({e}), reconnecting in {delay:.1f}s...")
+                logger.warning(
+                    f"Connection lost ({e}), reconnecting in {delay:.1f}s..."
+                )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, self.reconnect_max_delay)
             except asyncio.CancelledError:

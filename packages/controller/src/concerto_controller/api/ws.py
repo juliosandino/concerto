@@ -76,7 +76,9 @@ async def agent_websocket(ws: WebSocket) -> None:
         await ws.send_text(ack.model_dump_json())
 
         connections[agent_id] = ws
-        logger.info(f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}")
+        logger.info(
+            f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}"
+        )
 
         # Trigger dispatcher for any queued jobs
         async with async_session() as session:
@@ -157,7 +159,9 @@ async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
         if agent.current_job_id:
             job = await session.get(JobRecord, agent.current_job_id)
             if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
-                logger.info(f"Re-queuing job {job.id} from disconnected agent {agent_id}")
+                logger.info(
+                    f"Re-queuing job {job.id} from disconnected agent {agent_id}"
+                )
                 job.status = JobStatus.QUEUED
                 job.assigned_agent_id = None
                 job.started_at = None

@@ -88,10 +88,14 @@ async def run_chaos_agent(
                 raw = await ws.recv()
                 ack = parse_message(raw)
                 if not isinstance(ack, RegisterAckMessage):
-                    logger.error(f"[{agent_name}] Expected RegisterAck, got {type(ack).__name__}")
+                    logger.error(
+                        f"[{agent_name}] Expected RegisterAck, got {type(ack).__name__}"
+                    )
                     continue
                 agent_id = ack.agent_id
-                logger.info(f"[{agent_name}] Connected and registered (caps={capabilities})")
+                logger.info(
+                    f"[{agent_name}] Connected and registered (caps={capabilities})"
+                )
 
                 # Determine how long this session will last before dropout
                 uptime = (
@@ -111,7 +115,9 @@ async def run_chaos_agent(
                     async for raw in ws:
                         msg = parse_message(raw)
                         if isinstance(msg, DisconnectMessage):
-                            logger.info(f"[{agent_name}] Received disconnect: {msg.reason}")
+                            logger.info(
+                                f"[{agent_name}] Received disconnect: {msg.reason}"
+                            )
                             raise _ChaosDisconnected()
                         if isinstance(msg, JobAssignMessage):
                             await _handle_job(ws, agent_id, agent_name, msg, profile)
@@ -122,7 +128,9 @@ async def run_chaos_agent(
                         await asyncio.Event().wait()
                     else:
                         await asyncio.sleep(uptime)
-                        logger.warning(f"[{agent_name}] Chaos dropout after {uptime:.1f}s!")
+                        logger.warning(
+                            f"[{agent_name}] Chaos dropout after {uptime:.1f}s!"
+                        )
                         raise _ChaosDropout()
 
                 try:
@@ -182,7 +190,9 @@ async def _handle_job(
     if profile.should_fail_job():
         status = JobStatus.FAILED
         result = f"Chaos-induced failure after {duration:.1f}s"
-        logger.warning(f"[{agent_name}] Job {job_id} FAILED (chaos) after {duration:.1f}s")
+        logger.warning(
+            f"[{agent_name}] Job {job_id} FAILED (chaos) after {duration:.1f}s"
+        )
     else:
         status = JobStatus.COMPLETED
         result = f"Test passed after {duration:.1f}s"

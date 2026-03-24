@@ -15,7 +15,9 @@ async def _run(num_agents: int, controller_url: str, chaos_level: str) -> None:
         logger.error(f"Unknown chaos level: {chaos_level} (use low/medium/high)")
         return
 
-    logger.info(f"Launching {num_agents} chaos agents at {controller_url} (chaos_level={chaos_level})")
+    logger.info(
+        f"Launching {num_agents} chaos agents at {controller_url} (chaos_level={chaos_level})"
+    )
 
     async with asyncio.TaskGroup() as tg:
         for i in range(num_agents):

@@ -7,8 +7,8 @@ from concerto_controller.config import settings
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_controller.scheduler.dispatcher import try_dispatch
-from loguru import logger
 from concerto_shared.enums import AgentStatus, JobStatus
+from loguru import logger
 from sqlalchemy import select
 
 
@@ -17,7 +17,9 @@ async def heartbeat_monitor() -> None:
 
     Runs in a loop every HEARTBEAT_CHECK_INTERVAL_SEC seconds.
     """
-    logger.info(f"Heartbeat monitor started (timeout={settings.heartbeat_timeout_sec}s, interval={settings.heartbeat_check_interval_sec}s)")
+    logger.info(
+        f"Heartbeat monitor started (timeout={settings.heartbeat_timeout_sec}s, interval={settings.heartbeat_check_interval_sec}s)"
+    )
 
     while True:
         try:
@@ -52,7 +54,9 @@ async def _check_stale_agents() -> None:
             return
 
         for agent in stale_agents:
-            logger.warning(f"Agent {agent.name} ({agent.id}) heartbeat expired (last: {agent.last_heartbeat}, cutoff: {cutoff})")
+            logger.warning(
+                f"Agent {agent.name} ({agent.id}) heartbeat expired (last: {agent.last_heartbeat}, cutoff: {cutoff})"
+            )
 
             # Close the WebSocket if still connected
             from concerto_controller.api.ws import connections

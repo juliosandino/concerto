@@ -1,4 +1,5 @@
 """CLI helpers for Concerto controller management."""
+
 from __future__ import annotations
 
 import sys

@@ -74,12 +74,12 @@ class JobSubmitScreen(ModalScreen[JobSubmitResult | None]):
             for p in Product:
                 option_list.add_option(Option(p.value, id=p.value))
             yield option_list
-            yield Label("Duration in seconds (leave empty for random):", id="duration-label")
+            yield Label(
+                "Duration in seconds (leave empty for random):", id="duration-label"
+            )
             yield Input(placeholder="e.g. 5.0", id="duration-input")
 
-    def on_option_list_option_selected(
-        self, event: OptionList.OptionSelected
-    ) -> None:
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         self._selected_product = Product(event.option.id)
         self._try_submit()
 
@@ -328,9 +328,7 @@ class ConcertoDashboard(App):
         try:
             resp = await self._client.delete(f"/agents/{agent_id}")
             if resp.status_code == 204:
-                event_log.write_line(
-                    f"[green]Agent {agent_id[:8]}… removed[/green]"
-                )
+                event_log.write_line(f"[green]Agent {agent_id[:8]}… removed[/green]")
                 await self._poll_data()
             else:
                 event_log.write_line(
