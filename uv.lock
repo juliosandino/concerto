@@ -8,6 +8,7 @@ members = [
     "concerto-agent",
     "concerto-chaos",
     "concerto-controller",
+    "concerto-dashboard",
     "concerto-shared",
 ]
 
@@ -136,6 +137,7 @@ dev = [
     { name = "concerto-agent" },
     { name = "concerto-chaos" },
     { name = "concerto-controller" },
+    { name = "concerto-dashboard" },
     { name = "concerto-shared" },
     { name = "httpx" },
     { name = "pytest" },
@@ -150,6 +152,7 @@ dev = [
     { name = "concerto-agent", editable = "packages/agent" },
     { name = "concerto-chaos", editable = "packages/chaos" },
     { name = "concerto-controller", editable = "packages/controller" },
+    { name = "concerto-dashboard", editable = "packages/dashboard" },
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pytest", specifier = ">=8.0" },
@@ -202,10 +205,8 @@ dependencies = [
     { name = "asyncpg" },
     { name = "concerto-shared" },
     { name = "fastapi" },
-    { name = "httpx" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "textual" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -215,11 +216,28 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "httpx", specifier = ">=0.27" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
-    { name = "textual", specifier = ">=1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+]
+
+[[package]]
+name = "concerto-dashboard"
+version = "0.1.0"
+source = { editable = "packages/dashboard" }
+dependencies = [
+    { name = "concerto-shared" },
+    { name = "httpx" },
+    { name = "loguru" },
+    { name = "textual" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concerto-shared", editable = "packages/shared" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "loguru", specifier = ">=0.7" },
+    { name = "textual", specifier = ">=1.0" },
 ]
 
 [[package]]

@@ -11,13 +11,10 @@ dependencies = [
     "asyncpg>=0.30",
     "alembic>=1.13",
     "pydantic-settings>=2.0",
-    "textual>=1.0",
-    "httpx>=0.27",
 ]
 
 [project.scripts]
 concerto-controller = "concerto_controller.main:run"
-concerto-dashboard = "concerto_controller.dashboard.app:run"
 concerto-migrate = "concerto_controller.cli:migrate"
 concerto-revision = "concerto_controller.cli:revision"
 concerto-downgrade = "concerto_controller.cli:downgrade"

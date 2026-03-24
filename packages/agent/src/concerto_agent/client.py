@@ -71,6 +71,15 @@ class AgentClient:
                         f"Registration rejected: {e.rcvd.reason} — stopping agent"
                     )
                     break
+                # 1012 = Service Restart — use fixed 10s retry interval
+                if (
+                    isinstance(e, websockets.exceptions.ConnectionClosedError)
+                    and e.rcvd is not None
+                    and e.rcvd.code == 1012
+                ):
+                    logger.warning("Server restarting (1012), retrying in 10s...")
+                    await asyncio.sleep(10)
+                    continue
                 logger.warning(
                     f"Connection lost ({e}), reconnecting in {delay:.1f}s..."
                 )
@@ -109,9 +118,12 @@ class AgentClient:
         logger.info(f"Registered as {self.agent_name} (id={self.agent_id})")
 
         # Run heartbeat and receiver concurrently
-        async with asyncio.TaskGroup() as tg:
-            tg.create_task(self._heartbeat_loop(ws))
-            tg.create_task(self._receive_loop(ws))
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tg.create_task(self._heartbeat_loop(ws))
+                tg.create_task(self._receive_loop(ws))
+        except* websockets.exceptions.ConnectionClosed as eg:
+            raise eg.exceptions[0]
 
     async def _heartbeat_loop(self, ws: ClientConnection) -> None:
         """Send periodic heartbeats."""
