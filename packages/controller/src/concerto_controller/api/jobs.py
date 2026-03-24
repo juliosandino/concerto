@@ -49,6 +49,11 @@ async def create_job(
 
     await try_dispatch(session)
 
+    # Notify dashboards of new job
+    from concerto_controller.api.dashboard_ws import notify_dashboards
+
+    await notify_dashboards()
+
     return _to_info(job)
 
 

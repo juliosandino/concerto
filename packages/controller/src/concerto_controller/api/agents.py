@@ -77,6 +77,11 @@ async def remove_agent(
 
     await try_dispatch(session)
 
+    # Notify dashboards
+    from concerto_controller.api.dashboard_ws import notify_dashboards
+
+    await notify_dashboards()
+
 
 def _to_info(agent: AgentRecord) -> AgentInfo:
     from concerto_shared.enums import Product

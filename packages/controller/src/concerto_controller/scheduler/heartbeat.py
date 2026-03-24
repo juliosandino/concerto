@@ -85,3 +85,8 @@ async def _check_stale_agents() -> None:
         # Try dispatching re-queued jobs
         async with async_session() as dispatch_session:
             await try_dispatch(dispatch_session)
+
+        # Notify dashboards of stale agent changes
+        from concerto_controller.api.dashboard_ws import notify_dashboards
+
+        await notify_dashboards()

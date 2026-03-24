@@ -16,6 +16,10 @@ class MessageType(StrEnum):
     JOB_ASSIGN = "job_assign"
     JOB_STATUS = "job_status"
     DISCONNECT = "disconnect"
+    # Dashboard protocol
+    DASHBOARD_SNAPSHOT = "dashboard_snapshot"
+    DASHBOARD_REMOVE_AGENT = "dashboard_remove_agent"
+    DASHBOARD_CREATE_JOB = "dashboard_create_job"
 
 
 class RegisterMessage(BaseModel):
@@ -66,6 +70,36 @@ class DisconnectMessage(BaseModel):
     reason: str = "Removed by controller"
 
 
+# ---------------------------------------------------------------------------
+# Dashboard protocol
+# ---------------------------------------------------------------------------
+
+
+class DashboardSnapshotMessage(BaseModel):
+    """Controller → Dashboard: full state snapshot."""
+
+    type: Literal[MessageType.DASHBOARD_SNAPSHOT] = MessageType.DASHBOARD_SNAPSHOT
+    agents: list[dict]
+    jobs: list[dict]
+
+
+class DashboardRemoveAgentMessage(BaseModel):
+    """Dashboard → Controller: remove an agent."""
+
+    type: Literal[MessageType.DASHBOARD_REMOVE_AGENT] = (
+        MessageType.DASHBOARD_REMOVE_AGENT
+    )
+    agent_id: UUID
+
+
+class DashboardCreateJobMessage(BaseModel):
+    """Dashboard → Controller: submit a new job."""
+
+    type: Literal[MessageType.DASHBOARD_CREATE_JOB] = MessageType.DASHBOARD_CREATE_JOB
+    product: Product
+    duration: float | None = None
+
+
 # Discriminated union for parsing incoming WebSocket messages
 WSMessage = Annotated[
     Union[
@@ -86,4 +120,24 @@ def parse_message(raw: str | bytes) -> WSMessage:
     from pydantic import TypeAdapter
 
     adapter = TypeAdapter(WSMessage)
+    return adapter.validate_python(data)
+
+
+# Discriminated union for dashboard WebSocket messages
+DashboardWSMessage = Annotated[
+    Union[
+        DashboardSnapshotMessage,
+        DashboardRemoveAgentMessage,
+        DashboardCreateJobMessage,
+    ],
+    Field(discriminator="type"),
+]
+
+
+def parse_dashboard_message(raw: str | bytes) -> DashboardWSMessage:
+    """Parse a raw WebSocket text frame into a dashboard message."""
+    data = json.loads(raw)
+    from pydantic import TypeAdapter
+
+    adapter = TypeAdapter(DashboardWSMessage)
     return adapter.validate_python(data)

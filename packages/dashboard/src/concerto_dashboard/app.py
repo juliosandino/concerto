@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 from datetime import datetime, timezone
 
-import httpx
+import websockets
 from concerto_shared.enums import Product
+from concerto_shared.messages import (
+    DashboardCreateJobMessage,
+    DashboardRemoveAgentMessage,
+    DashboardSnapshotMessage,
+    parse_dashboard_message,
+)
 from loguru import logger
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal
-from textual.reactive import reactive
+from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import (
     DataTable,
@@ -22,8 +28,6 @@ from textual.widgets import (
     Static,
 )
 from textual.widgets.option_list import Option
-
-REFRESH_INTERVAL = 2.0  # seconds
 
 
 class JobSubmitResult:
@@ -142,16 +146,16 @@ class ConcertoDashboard(App):
 
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("r", "refresh", "Refresh"),
         ("d", "remove_agent", "Remove Agent"),
         ("n", "new_job", "New Job"),
     ]
 
-    def __init__(self, controller_url: str = "http://localhost:8000") -> None:
+    def __init__(self, controller_ws_url: str = "ws://localhost:8000/ws/dashboard") -> None:
         super().__init__()
-        self.controller_url = controller_url
-        self._client = httpx.AsyncClient(base_url=controller_url, timeout=5.0)
-        # Map row keys → agent IDs for the agents table
+        self.controller_ws_url = controller_ws_url
+        self._ws: websockets.ClientConnection | None = None
+        self._ws_task: asyncio.Task | None = None
+        # Map row keys -> agent IDs for the agents table
         self._agent_row_ids: dict[str, str] = {}
 
     def compose(self) -> ComposeResult:
@@ -184,26 +188,50 @@ class ConcertoDashboard(App):
             "ID (short)", "Product", "Status", "Assigned To", "Created"
         )
 
-        # Start polling
-        self.set_interval(REFRESH_INTERVAL, self._poll_data)
-        await self._poll_data()
+        # Start WebSocket connection loop
+        self._ws_task = asyncio.create_task(self._ws_loop())
 
-    async def _poll_data(self) -> None:
+    async def _ws_loop(self) -> None:
+        """Maintain a persistent WebSocket connection with reconnection."""
+        backoff = 1.0
+        max_backoff = 30.0
         event_log = self.query_one("#event-log", Log)
-        try:
-            await self._refresh_agents()
-            await self._refresh_jobs()
-            await self._refresh_stats()
-        except httpx.ConnectError:
-            event_log.write_line("[red]Cannot connect to controller[/red]")
-        except Exception as e:
-            event_log.write_line(f"[red]Error: {e}[/red]")
 
-    async def _refresh_agents(self) -> None:
-        resp = await self._client.get("/agents")
-        resp.raise_for_status()
-        agents = resp.json()
+        while True:
+            try:
+                async with websockets.connect(self.controller_ws_url) as ws:
+                    self._ws = ws
+                    backoff = 1.0
+                    event_log.write_line("[green]Connected to controller[/green]")
 
+                    async for raw in ws:
+                        try:
+                            msg = parse_dashboard_message(raw)
+                            if isinstance(msg, DashboardSnapshotMessage):
+                                self._apply_snapshot(msg)
+                        except Exception as exc:
+                            logger.warning(f"Bad dashboard message: {exc}")
+
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                self._ws = None
+                event_log.write_line(
+                    f"[red]Connection lost ({exc}), retrying in {backoff:.0f}s…[/red]"
+                )
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, max_backoff)
+
+    # ------------------------------------------------------------------
+    # Snapshot application
+    # ------------------------------------------------------------------
+
+    def _apply_snapshot(self, snapshot: DashboardSnapshotMessage) -> None:
+        self._update_agents(snapshot.agents)
+        self._update_jobs(snapshot.jobs)
+        self._update_stats(snapshot.agents, snapshot.jobs)
+
+    def _update_agents(self, agents: list[dict]) -> None:
         table = self.query_one("#agents-table", DataTable)
         table.clear()
         self._agent_row_ids.clear()
@@ -221,10 +249,10 @@ class ConcertoDashboard(App):
             job_id = (
                 str(agent.get("current_job_id", ""))[:8]
                 if agent.get("current_job_id")
-                else "—"
+                else "\u2014"
             )
-            last_hb = agent.get("last_heartbeat", "—")
-            if last_hb and last_hb != "—":
+            last_hb = agent.get("last_heartbeat", "\u2014")
+            if last_hb and last_hb != "\u2014":
                 try:
                     hb_time = datetime.fromisoformat(last_hb)
                     age = (datetime.now(timezone.utc) - hb_time).total_seconds()
@@ -241,11 +269,7 @@ class ConcertoDashboard(App):
             )
             self._agent_row_ids[str(row_key)] = agent["id"]
 
-    async def _refresh_jobs(self) -> None:
-        resp = await self._client.get("/jobs")
-        resp.raise_for_status()
-        jobs = resp.json()
-
+    def _update_jobs(self, jobs: list[dict]) -> None:
         table = self.query_one("#jobs-table", DataTable)
         table.clear()
 
@@ -257,17 +281,17 @@ class ConcertoDashboard(App):
             "failed": "red",
         }
 
-        for job in jobs[:50]:  # Show most recent 50
+        for job in jobs[:50]:
             status = job["status"]
             color = status_colors.get(status, "white")
             short_id = str(job["id"])[:8]
             assigned = (
                 str(job.get("assigned_agent_id", ""))[:8]
                 if job.get("assigned_agent_id")
-                else "—"
+                else "\u2014"
             )
-            created = job.get("created_at", "—")
-            if created != "—":
+            created = job.get("created_at", "\u2014")
+            if created != "\u2014":
                 try:
                     created = datetime.fromisoformat(created).strftime("%H:%M:%S")
                 except (ValueError, TypeError):
@@ -281,12 +305,7 @@ class ConcertoDashboard(App):
                 created,
             )
 
-    async def _refresh_stats(self) -> None:
-        agents_resp = await self._client.get("/agents")
-        jobs_resp = await self._client.get("/jobs")
-        agents = agents_resp.json()
-        jobs = jobs_resp.json()
-
+    def _update_stats(self, agents: list[dict], jobs: list[dict]) -> None:
         online = sum(1 for a in agents if a["status"] == "online")
         busy = sum(1 for a in agents if a["status"] == "busy")
         offline = sum(1 for a in agents if a["status"] == "offline")
@@ -304,8 +323,20 @@ class ConcertoDashboard(App):
         )
         self.query_one("#stats-content", Static).update(stats_text)
 
-    def action_refresh(self) -> None:
-        asyncio.create_task(self._poll_data())
+    # ------------------------------------------------------------------
+    # Commands sent over WebSocket
+    # ------------------------------------------------------------------
+
+    async def _send_command(self, msg) -> None:
+        """Send a command message over the dashboard WebSocket."""
+        event_log = self.query_one("#event-log", Log)
+        if self._ws is None:
+            event_log.write_line("[red]Not connected to controller[/red]")
+            return
+        try:
+            await self._ws.send(msg.model_dump_json())
+        except Exception as exc:
+            event_log.write_line(f"[red]Send error: {exc}[/red]")
 
     def action_remove_agent(self) -> None:
         """Remove the currently selected agent."""
@@ -325,17 +356,8 @@ class ConcertoDashboard(App):
             event_log.write_line("[yellow]No agent selected[/yellow]")
             return
 
-        try:
-            resp = await self._client.delete(f"/agents/{agent_id}")
-            if resp.status_code == 204:
-                event_log.write_line(f"[green]Agent {agent_id[:8]}… removed[/green]")
-                await self._poll_data()
-            else:
-                event_log.write_line(
-                    f"[red]Failed to remove agent: {resp.status_code}[/red]"
-                )
-        except Exception as e:
-            event_log.write_line(f"[red]Error removing agent: {e}[/red]")
+        event_log.write_line(f"Removing agent {agent_id[:8]}…")
+        await self._send_command(DashboardRemoveAgentMessage(agent_id=agent_id))
 
     def action_new_job(self) -> None:
         """Open job submission screen."""
@@ -347,40 +369,33 @@ class ConcertoDashboard(App):
 
     async def _submit_job(self, product: Product, duration: float | None) -> None:
         event_log = self.query_one("#event-log", Log)
-        try:
-            payload: dict = {"product": product.value}
-            if duration is not None:
-                payload["duration"] = duration
-            resp = await self._client.post("/jobs", json=payload)
-            if resp.status_code == 201:
-                job = resp.json()
-                dur_str = f", duration={duration}s" if duration else ""
-                event_log.write_line(
-                    f"[green]Job {str(job['id'])[:8]}… submitted "
-                    f"(product={product.value}{dur_str})[/green]"
-                )
-                await self._poll_data()
-            else:
-                event_log.write_line(
-                    f"[red]Failed to submit job: {resp.status_code}[/red]"
-                )
-        except Exception as e:
-            event_log.write_line(f"[red]Error submitting job: {e}[/red]")
+        dur_str = f", duration={duration}s" if duration else ""
+        event_log.write_line(f"Submitting job (product={product.value}{dur_str})…")
+        await self._send_command(
+            DashboardCreateJobMessage(product=product, duration=duration)
+        )
 
     async def on_unmount(self) -> None:
-        await self._client.aclose()
+        if self._ws_task:
+            self._ws_task.cancel()
+            try:
+                await self._ws_task
+            except asyncio.CancelledError:
+                pass
+        if self._ws:
+            await self._ws.close()
 
 
 def run() -> None:
     parser = argparse.ArgumentParser(description="Concerto TUI Dashboard")
     parser.add_argument(
         "--controller-url",
-        default="http://localhost:8000",
-        help="Controller REST API URL",
+        default="ws://localhost:8000/ws/dashboard",
+        help="Controller WebSocket URL",
     )
     args = parser.parse_args()
 
-    app = ConcertoDashboard(controller_url=args.controller_url)
+    app = ConcertoDashboard(controller_ws_url=args.controller_url)
     app.run()
 
 

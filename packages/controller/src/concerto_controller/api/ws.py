@@ -80,6 +80,11 @@ async def agent_websocket(ws: WebSocket) -> None:
             f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}"
         )
 
+        # Notify dashboards of new agent
+        from concerto_controller.api.dashboard_ws import notify_dashboards
+
+        await notify_dashboards()
+
         # Trigger dispatcher for any queued jobs
         async with async_session() as session:
             from concerto_controller.scheduler.dispatcher import try_dispatch
@@ -144,6 +149,11 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
 
             await try_dispatch(session)
 
+        # Notify dashboards of job status change
+        from concerto_controller.api.dashboard_ws import notify_dashboards
+
+        await notify_dashboards()
+
 
 async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
     """Mark agent offline and re-queue any assigned/running job."""
@@ -173,3 +183,8 @@ async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
         from concerto_controller.scheduler.dispatcher import try_dispatch
 
         await try_dispatch(session)
+
+        # Notify dashboards of agent disconnect
+        from concerto_controller.api.dashboard_ws import notify_dashboards
+
+        await notify_dashboards()

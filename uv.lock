@@ -227,17 +227,17 @@ version = "0.1.0"
 source = { editable = "packages/dashboard" }
 dependencies = [
     { name = "concerto-shared" },
-    { name = "httpx" },
     { name = "loguru" },
     { name = "textual" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "concerto-shared", editable = "packages/shared" },
-    { name = "httpx", specifier = ">=0.27" },
     { name = "loguru", specifier = ">=0.7" },
     { name = "textual", specifier = ">=1.0" },
+    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [[package]]

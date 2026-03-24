@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from concerto_controller.api.agents import router as agents_router
+from concerto_controller.api.dashboard_ws import router as dashboard_ws_router
 from concerto_controller.api.jobs import router as jobs_router
 from concerto_controller.api.ws import router as ws_router
 from concerto_controller.config import settings
@@ -54,6 +55,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Concerto TSS Controller", version="0.1.0", lifespan=lifespan)
 app.include_router(ws_router)
+app.include_router(dashboard_ws_router)
 app.include_router(jobs_router)
 app.include_router(agents_router)
 

@@ -62,6 +62,11 @@ async def try_dispatch(session: AsyncSession) -> None:
         # Send assignment over WebSocket
         await _send_job_assignment(agent.id, job)
 
+    # Notify dashboards of dispatch changes
+    from concerto_controller.api.dashboard_ws import notify_dashboards
+
+    await notify_dashboards()
+
 
 async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> None:
     """Send a JobAssignMessage to the agent over its WebSocket connection."""
