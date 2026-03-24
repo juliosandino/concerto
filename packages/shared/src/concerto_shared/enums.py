@@ -1,4 +1,5 @@
 """Shared enumerations for agent status, job status, and products."""
+
 from enum import StrEnum
 
 

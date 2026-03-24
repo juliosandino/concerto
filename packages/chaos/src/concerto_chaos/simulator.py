@@ -1,4 +1,5 @@
 """Chaos mock agent simulator with random failure profiles."""
+
 from __future__ import annotations
 
 import asyncio

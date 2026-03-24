@@ -1,4 +1,5 @@
 """Chaos simulator configuration and preset profiles."""
+
 from pydantic_settings import BaseSettings
 
 

@@ -1,4 +1,5 @@
 """Dashboard WebSocket endpoint and push notification handlers."""
+
 from __future__ import annotations
 
 import uuid

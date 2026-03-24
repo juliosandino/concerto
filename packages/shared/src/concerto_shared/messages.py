@@ -1,4 +1,5 @@
 """WebSocket message models and parsers for agent and dashboard protocols."""
+
 from __future__ import annotations
 
 import json

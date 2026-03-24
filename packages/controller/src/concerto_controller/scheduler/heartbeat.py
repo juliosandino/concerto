@@ -1,4 +1,5 @@
 """Heartbeat monitor that detects stale agents."""
+
 from __future__ import annotations
 
 import asyncio

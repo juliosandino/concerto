@@ -1,4 +1,5 @@
 """Agent CLI entry point and main event loop."""
+
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,5 @@
 """Agent WebSocket endpoint and message handlers."""
+
 from __future__ import annotations
 
 import uuid

@@ -1,4 +1,5 @@
 """Structured chaos verification scenarios and runner."""
+
 from __future__ import annotations
 
 import asyncio
@@ -268,9 +269,7 @@ async def scenario_fail_job_early(
         await _poll_job(http, job_id, {"failed"}, timeout=15.0)
 
         # Verify agent goes back to ONLINE
-        await _poll_agent_status(
-            http, str(agent.agent_id), "online", timeout=15.0
-        )
+        await _poll_agent_status(http, str(agent.agent_id), "online", timeout=15.0)
 
         return ScenarioResult(
             name="fail_job_early",

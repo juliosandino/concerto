@@ -1,4 +1,5 @@
 """WebSocket client for connecting agents to the controller."""
+
 from __future__ import annotations
 
 import asyncio

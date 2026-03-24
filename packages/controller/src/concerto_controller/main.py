@@ -1,4 +1,5 @@
 """Controller FastAPI application and startup lifecycle."""
+
 from __future__ import annotations
 
 import asyncio

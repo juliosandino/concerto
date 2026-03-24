@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models for agents and jobs."""
+
 from __future__ import annotations
 
 import uuid

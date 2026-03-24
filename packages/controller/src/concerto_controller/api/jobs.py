@@ -1,4 +1,5 @@
 """REST API endpoints for job management."""
+
 from __future__ import annotations
 
 import uuid
