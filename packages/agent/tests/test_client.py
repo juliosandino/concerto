@@ -330,9 +330,7 @@ class TestRunReconnection:
             cm = AsyncMock()
             if call_count >= 2:
                 client._running = False
-                cm.__aenter__ = AsyncMock(
-                    side_effect=ConnectionRefusedError("stop")
-                )
+                cm.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("stop"))
             else:
                 cm.__aenter__ = AsyncMock(side_effect=exc_1012)
             cm.__aexit__ = AsyncMock(return_value=False)
@@ -397,9 +395,7 @@ class TestRunReconnection:
             if call_count >= 6:
                 client._running = False
             cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(
-                side_effect=ConnectionRefusedError("refused")
-            )
+            cm.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("refused"))
             cm.__aexit__ = AsyncMock(return_value=False)
             return cm
 

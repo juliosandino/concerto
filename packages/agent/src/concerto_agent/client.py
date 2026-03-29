@@ -59,6 +59,7 @@ class AgentClient:
                     self._ws = ws
                     delay = self.reconnect_base_delay  # reset on successful connect
                     await self._session()
+            # Handle different disconnect scenarios with specific logging and backoff behavior
             except websockets.exceptions.ConnectionClosedError as err:
                 if err.rcvd is None:
                     logger.error(f"Connection closed with no close frame: {err}")
@@ -79,15 +80,19 @@ class AgentClient:
                         await asyncio.sleep(delay)
                         delay = min(delay * 2, self.reconnect_max_delay)
                         continue
+                    # With unexpected code or no code, log and stop
                     case _:
                         logger.error(
                             f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
                         )
                         break
+            # Handle connection refused (e.g. server not up yet) with backoff retries
             except ConnectionRefusedError:
                 logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, self.reconnect_max_delay)
+
+            # Handle cancellation (e.g. from shutdown signal) gracefully
             except asyncio.CancelledError:
                 break
 
