@@ -5,11 +5,8 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml ./
-COPY scripts/patch_workspace.py scripts/
-COPY packages/shared/ packages/shared/
-COPY packages/agent/ packages/agent/
+COPY packages/ packages/
 
-RUN python3 scripts/patch_workspace.py packages/shared packages/agent && \
-    uv sync --no-dev --package concerto-agent
+RUN uv sync --no-dev --package concerto-agent
 
 CMD ["uv", "run", "concerto-agent"]
