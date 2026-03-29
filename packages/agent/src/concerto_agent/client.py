@@ -7,10 +7,12 @@ import uuid
 from typing import Callable
 
 import websockets
+from concerto_agent.executor import execute_job
 from concerto_shared.enums import Product
 from concerto_shared.messages import (
     DisconnectMessage,
     HeartbeatMessage,
+    JobAssignMessage,
     RegisterAckMessage,
     RegisterMessage,
     WSMessage,
@@ -24,6 +26,9 @@ class AgentClient:
     """WebSocket client that connects to the controller, registers, and maintains a heartbeat loop while dispatching
     incoming messages."""
 
+    CONNECTION_REJECTED = 4002
+    SERVICE_RESTART = 1012
+
     def __init__(
         self,
         agent_name: str,
@@ -32,7 +37,6 @@ class AgentClient:
         heartbeat_interval: float = 5.0,
         reconnect_base_delay: float = 1.0,
         reconnect_max_delay: float = 30.0,
-        on_message: Callable[[WSMessage], asyncio.Future] | None = None,
     ) -> None:
         self.agent_name = agent_name
         self.capabilities = capabilities
@@ -40,7 +44,6 @@ class AgentClient:
         self.heartbeat_interval = heartbeat_interval
         self.reconnect_base_delay = reconnect_base_delay
         self.reconnect_max_delay = reconnect_max_delay
-        self.on_message = on_message
         self.agent_id: uuid.UUID | None = None
         self._ws: ClientConnection | None = None
         self._running = False
@@ -56,44 +59,36 @@ class AgentClient:
                     self._ws = ws
                     delay = self.reconnect_base_delay  # reset on successful connect
                     await self._session(ws)
-            except (
-                ConnectionError,
-                OSError,
-                websockets.exceptions.WebSocketException,
-            ) as e:
-                if not self._running:
+            except websockets.exceptions.ConnectionClosedError as err:
+                if err.rcvd is None:
+                    logger.error(f"Connection closed with no close frame: {err}")
                     break
-                # If the server rejected us with 4002, stop immediately
-                if (
-                    isinstance(e, websockets.exceptions.ConnectionClosedError)
-                    and e.rcvd is not None
-                    and e.rcvd.code == 4002
-                ):
-                    logger.error(
-                        f"Registration rejected: {e.rcvd.reason} — stopping agent"
-                    )
-                    break
-                # 1012 = Service Restart — use fixed 10s retry interval
-                if (
-                    isinstance(e, websockets.exceptions.ConnectionClosedError)
-                    and e.rcvd is not None
-                    and e.rcvd.code == 1012
-                ):
-                    logger.warning("Server restarting (1012), retrying in 10s...")
-                    await asyncio.sleep(10)
-                    continue
-                logger.warning(
-                    f"Connection lost ({e}), reconnecting in {delay:.1f}s..."
-                )
-                await asyncio.sleep(delay)
-                delay = min(delay * 2, self.reconnect_max_delay)
+
+                match err.rcvd.code:
+                    # If the server rejected us with 4002, stop immediately
+                    case self.CONNECTION_REJECTED:
+                        logger.error(
+                            f"Registration rejected: {err.rcvd.reason} — stopping agent"
+                        )
+                        break
+                    # 1012 = Service Restart — use retry interval
+                    case self.SERVICE_RESTART:
+                        logger.warning("Server restarting (1012), retrying in 10s...")
+                        await asyncio.sleep(delay)
+                        continue
+                    case _:
+                        logger.error(
+                            f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
+                        )
+                        break
             except asyncio.CancelledError:
                 break
 
         self._ws = None
 
-    async def stop(self) -> None:
+    async def stop(self, msg: DisconnectMessage) -> None:
         """Stop the client and close the WebSocket."""
+        logger.info(f"Received disconnect: {msg.reason} — terminating")
         self._running = False
         if self._ws:
             await self._ws.close()
@@ -140,10 +135,15 @@ class AgentClient:
         """Receive and dispatch incoming messages from the controller."""
         async for raw in ws:
             msg = parse_message(raw)
-            if isinstance(msg, DisconnectMessage):
-                logger.info(f"Received disconnect: {msg.reason} — terminating")
-                self._running = False
-                await ws.close()
-                return
-            if self.on_message:
-                await self.on_message(msg)
+            match msg:
+                case DisconnectMessage():
+                    await self.stop(msg)
+                    return
+                case JobAssignMessage():
+                    asyncio.create_task(
+                        execute_job(
+                            agent_id=self.agent_id,
+                            assignment=msg,
+                            send_fn=self.send,
+                        )
+                    )
