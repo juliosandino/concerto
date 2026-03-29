@@ -11,6 +11,8 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+MIN_JOB_DURATION = 5.0  # seconds, for simulation purposes
+
 
 async def try_dispatch(session: AsyncSession) -> None:
     """Attempt to assign queued jobs to available compatible agents.
@@ -100,6 +102,10 @@ async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> bool:
             f"No WebSocket connection for agent {agent_id} to send job assignment"
         )
         return False
+
+    if job.duration is None:
+        logger.debug(f"Setting duration for job {job.id} to {MIN_JOB_DURATION} seconds")
+        job.duration = MIN_JOB_DURATION
 
     msg = JobAssignMessage(job_id=job.id, product=job.product, duration=job.duration)
     try:

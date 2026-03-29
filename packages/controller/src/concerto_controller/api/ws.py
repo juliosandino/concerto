@@ -136,11 +136,10 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
         if msg.status == JobStatus.RUNNING:
             job.status = JobStatus.RUNNING
             job.started_at = now
-        elif msg.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+        elif msg.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.PASSED):
             job.status = msg.status
             job.completed_at = now
             job.result = msg.result
-            job.assigned_agent_id = None
 
             # Free the agent
             agent = await session.get(AgentRecord, msg.agent_id)
@@ -151,7 +150,7 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
         await session.commit()
 
         # If job finished, try dispatching queued jobs
-        if msg.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+        if msg.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.PASSED):
             from concerto_controller.scheduler.dispatcher import try_dispatch
 
             await try_dispatch(session)

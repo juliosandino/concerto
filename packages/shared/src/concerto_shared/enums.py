@@ -18,6 +18,7 @@ class JobStatus(StrEnum):
     ASSIGNED = "assigned"
     RUNNING = "running"
     COMPLETED = "completed"
+    PASSED = "passed"
     FAILED = "failed"
 
 

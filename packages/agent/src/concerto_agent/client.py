@@ -58,7 +58,7 @@ class AgentClient:
                 async with websockets.connect(self.controller_url) as ws:
                     self._ws = ws
                     delay = self.reconnect_base_delay  # reset on successful connect
-                    await self._session(ws)
+                    await self._session()
             except websockets.exceptions.ConnectionClosedError as err:
                 if err.rcvd is None:
                     logger.error(f"Connection closed with no close frame: {err}")
@@ -73,14 +73,21 @@ class AgentClient:
                         break
                     # 1012 = Service Restart — use retry interval
                     case self.SERVICE_RESTART:
-                        logger.warning("Server restarting (1012), retrying in 10s...")
+                        logger.warning(
+                            f"Server restarting (1012), retrying in {delay:.1f}s..."
+                        )
                         await asyncio.sleep(delay)
+                        delay = min(delay * 2, self.reconnect_max_delay)
                         continue
                     case _:
                         logger.error(
                             f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
                         )
                         break
+            except ConnectionRefusedError:
+                logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, self.reconnect_max_delay)
             except asyncio.CancelledError:
                 break
 
@@ -98,17 +105,17 @@ class AgentClient:
         if self._ws:
             await self._ws.send(msg.model_dump_json())
 
-    async def _session(self, ws: ClientConnection) -> None:
+    async def _session(self) -> None:
         """Run a single connected session: register, heartbeat, receive."""
         # Register
-        reg = RegisterMessage(
+        register_msg = RegisterMessage(
             agent_name=self.agent_name,
             capabilities=self.capabilities,
         )
-        await ws.send(reg.model_dump_json())
+        await self.send(register_msg)
 
         # Wait for server-assigned agent ID
-        raw = await ws.recv()
+        raw = await self._ws.recv()
         ack = parse_message(raw)
         if not isinstance(ack, RegisterAckMessage):
             logger.error(f"Expected RegisterAck, got {type(ack).__name__}")
@@ -118,22 +125,22 @@ class AgentClient:
 
         # Run heartbeat and receiver concurrently
         try:
-            async with asyncio.TaskGroup() as tg:
-                tg.create_task(self._heartbeat_loop(ws))
-                tg.create_task(self._receive_loop(ws))
+            async with asyncio.TaskGroup() as task_group:
+                task_group.create_task(self._heartbeat_loop())
+                task_group.create_task(self._receive_loop())
         except* websockets.exceptions.ConnectionClosed as eg:
             raise eg.exceptions[0]
 
-    async def _heartbeat_loop(self, ws: ClientConnection) -> None:
+    async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeats."""
         while self._running:
             msg = HeartbeatMessage(agent_id=self.agent_id)
-            await ws.send(msg.model_dump_json())
+            await self.send(msg)
             await asyncio.sleep(self.heartbeat_interval)
 
-    async def _receive_loop(self, ws: ClientConnection) -> None:
+    async def _receive_loop(self) -> None:
         """Receive and dispatch incoming messages from the controller."""
-        async for raw in ws:
+        async for raw in self._ws:
             msg = parse_message(raw)
             match msg:
                 case DisconnectMessage():

@@ -37,7 +37,7 @@ async def execute_job(
     await asyncio.sleep(assignment.duration)
 
     # Determine outcome
-    status = JobStatus.COMPLETED
+    status = JobStatus.PASSED
     result = f"Test completed after {assignment.duration:.1f}s"
     logger.info(f"Job {job_id} completed after {assignment.duration:.1f}s")
 

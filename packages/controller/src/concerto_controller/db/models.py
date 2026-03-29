@@ -54,7 +54,8 @@ class JobRecord(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     product: Mapped[Product] = mapped_column(
-        Enum(Product, name="product", create_constraint=True), nullable=False
+        Enum(Product, name="product", create_constraint=True),
+        nullable=False,
     )
     status: Mapped[JobStatus] = mapped_column(
         Enum(JobStatus, name="job_status", create_constraint=True),
@@ -62,7 +63,7 @@ class JobRecord(Base):
         default=JobStatus.QUEUED,
     )
     assigned_agent_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("agents.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
