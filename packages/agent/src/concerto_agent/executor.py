@@ -15,9 +15,6 @@ async def execute_job(
     agent_id: uuid.UUID,
     assignment: JobAssignMessage,
     send_fn,
-    min_duration: float = 2.0,
-    max_duration: float = 8.0,
-    failure_rate: float = 0.1,
 ) -> None:
     """Simulate executing a test job.
 
@@ -37,18 +34,12 @@ async def execute_job(
     )
 
     # Simulate work — use job-specified duration if provided
-    duration = assignment.duration or random.uniform(min_duration, max_duration)
-    await asyncio.sleep(duration)
+    await asyncio.sleep(assignment.duration)
 
     # Determine outcome
-    if random.random() < failure_rate:
-        status = JobStatus.FAILED
-        result = f"Simulated failure after {duration:.1f}s"
-        logger.warning(f"Job {job_id} failed after {duration:.1f}s")
-    else:
-        status = JobStatus.COMPLETED
-        result = f"Test passed after {duration:.1f}s"
-        logger.info(f"Job {job_id} completed after {duration:.1f}s")
+    status = JobStatus.COMPLETED
+    result = f"Test completed after {assignment.duration:.1f}s"
+    logger.info(f"Job {job_id} completed after {assignment.duration:.1f}s")
 
     await send_fn(
         JobStatusMessage(
