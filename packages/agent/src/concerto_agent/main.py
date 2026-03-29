@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from concerto_agent.client import AgentClient
+from concerto_agent.agent import ConcertoAgent
 from concerto_agent.config import load_settings
 from loguru import logger
 
@@ -13,7 +13,7 @@ from loguru import logger
 async def _run(config_path: str | None = None) -> None:
 
     settings = load_settings(config_path)
-    client = AgentClient(
+    client = ConcertoAgent(
         agent_name=settings.agent_name,
         capabilities=settings.capabilities,
         controller_url=settings.controller_url,

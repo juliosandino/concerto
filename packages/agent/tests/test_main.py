@@ -16,7 +16,7 @@ class TestRun:
 
     @pytest.mark.asyncio
     async def test_run_creates_client_and_calls_run(self):
-        """Verify _run loads settings, creates AgentClient, and calls run()."""
+        """Verify _run loads settings, creates ConcertoAgent, and calls run()."""
         mock_client_instance = AsyncMock()
 
         with (
@@ -32,7 +32,7 @@ class TestRun:
                 ),
             ),
             patch(
-                "concerto_agent.main.AgentClient",
+                "concerto_agent.main.ConcertoAgent",
                 return_value=mock_client_instance,
             ) as mock_cls,
         ):
@@ -59,7 +59,7 @@ class TestRun:
                 ),
             ) as mock_load,
             patch(
-                "concerto_agent.main.AgentClient",
+                "concerto_agent.main.ConcertoAgent",
                 return_value=mock_client_instance,
             ),
         ):

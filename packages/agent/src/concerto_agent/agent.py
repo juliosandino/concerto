@@ -22,7 +22,7 @@ from loguru import logger
 from websockets.asyncio.client import ClientConnection
 
 
-class AgentClient:
+class ConcertoAgent:
     """WebSocket client that connects to the controller, registers, and maintains a heartbeat loop while dispatching
     incoming messages."""
 
@@ -55,42 +55,43 @@ class AgentClient:
 
         while self._running:
             try:
-                async with websockets.connect(self.controller_url) as ws:
-                    self._ws = ws
-                    delay = self.reconnect_base_delay  # reset on successful connect
-                    await self._session()
-            # Handle different disconnect scenarios with specific logging and backoff behavior
-            except websockets.exceptions.ConnectionClosedError as err:
-                if err.rcvd is None:
-                    logger.error(f"Connection closed with no close frame: {err}")
-                    break
+                try:
+                    async with websockets.connect(self.controller_url) as ws:
+                        self._ws = ws
+                        delay = self.reconnect_base_delay  # reset on successful connect
+                        await self._session()
+                # Handle different disconnect scenarios with specific logging and backoff behavior
+                except websockets.exceptions.ConnectionClosedError as err:
+                    if err.rcvd is None:
+                        logger.error(f"Connection closed with no close frame: {err}")
+                        break
 
-                match err.rcvd.code:
-                    # If the server rejected us with 4002, stop immediately
-                    case self.CONNECTION_REJECTED:
-                        logger.error(
-                            f"Registration rejected: {err.rcvd.reason} — stopping agent"
-                        )
-                        break
-                    # 1012 = Service Restart — use retry interval
-                    case self.SERVICE_RESTART:
-                        logger.warning(
-                            f"Server restarting (1012), retrying in {delay:.1f}s..."
-                        )
-                        await asyncio.sleep(delay)
-                        delay = min(delay * 2, self.reconnect_max_delay)
-                        continue
-                    # With unexpected code or no code, log and stop
-                    case _:
-                        logger.error(
-                            f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
-                        )
-                        break
-            # Handle connection refused (e.g. server not up yet) with backoff retries
-            except ConnectionRefusedError:
-                logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
-                await asyncio.sleep(delay)
-                delay = min(delay * 2, self.reconnect_max_delay)
+                    match err.rcvd.code:
+                        # If the server rejected us with 4002, stop immediately
+                        case self.CONNECTION_REJECTED:
+                            logger.error(
+                                f"Registration rejected: {err.rcvd.reason} — stopping agent"
+                            )
+                            break
+                        # 1012 = Service Restart — use retry interval
+                        case self.SERVICE_RESTART:
+                            logger.warning(
+                                f"Server restarting (1012), retrying in {delay:.1f}s..."
+                            )
+                            await asyncio.sleep(delay)
+                            delay = min(delay * 2, self.reconnect_max_delay)
+                            continue
+                        # With unexpected code or no code, log and stop
+                        case _:
+                            logger.error(
+                                f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
+                            )
+                            break
+                # Handle connection refused (e.g. server not up yet) with backoff retries
+                except ConnectionRefusedError:
+                    logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
+                    delay = min(delay * 2, self.reconnect_max_delay)
 
             # Handle cancellation (e.g. from shutdown signal) gracefully
             except asyncio.CancelledError:
