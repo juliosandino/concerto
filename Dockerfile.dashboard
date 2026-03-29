@@ -6,8 +6,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml ./
 COPY packages/ packages/
-COPY alpha.yaml ./
 
-RUN uv sync --no-dev --package concerto-agent
+RUN uv sync --no-dev --package concerto-dashboard
 
-CMD ["uv", "run", "concerto-agent", "--config", "alpha.yaml"]
+CMD ["uv", "run", "concerto-dashboard"]
