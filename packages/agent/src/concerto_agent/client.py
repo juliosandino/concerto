@@ -154,3 +154,7 @@ class AgentClient:
                             send_fn=self.send,
                         )
                     )
+                case _:
+                    logger.warning(
+                        f"Received unrecognized message type: {type(msg).__name__}"
+                    )

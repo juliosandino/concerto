@@ -45,21 +45,9 @@ class TestAgentClientInit:
         assert client.heartbeat_interval == 0.01
         assert client.reconnect_base_delay == 0.01
         assert client.reconnect_max_delay == 0.05
-        assert client.on_message is None
         assert client.agent_id is None
         assert client._ws is None
         assert client._running is False
-
-    def test_constructor_with_on_message(self):
-        """Verify on_message callback is stored."""
-        callback = AsyncMock()
-        c = AgentClient(
-            agent_name="a",
-            capabilities=[],
-            controller_url="ws://x",
-            on_message=callback,
-        )
-        assert c.on_message is callback
 
 
 class TestAgentClientStop:
@@ -71,7 +59,8 @@ class TestAgentClientStop:
         client._running = True
         mock_ws = AsyncMock()
         client._ws = mock_ws
-        await client.stop()
+        msg = DisconnectMessage(reason="shutdown")
+        await client.stop(msg)
         assert client._running is False
         mock_ws.close.assert_awaited_once()
 
@@ -79,7 +68,8 @@ class TestAgentClientStop:
     async def test_stop_when_no_ws(self, client):
         """Verify stop works cleanly when no websocket exists."""
         client._running = True
-        await client.stop()
+        msg = DisconnectMessage(reason="shutdown")
+        await client.stop(msg)
         assert client._running is False
 
 
@@ -112,19 +102,19 @@ class TestAgentClientSession:
         ack = RegisterAckMessage(agent_id=agent_id)
         ws = AsyncMock()
         ws.recv = AsyncMock(return_value=ack.model_dump_json())
+        client._ws = ws
 
-        # Make the TaskGroup tasks end immediately
-        async def fake_heartbeat(_ws_arg):  # pylint: disable=unused-argument
+        async def fake_heartbeat():
             pass
 
-        async def fake_receive(_ws_arg):  # pylint: disable=unused-argument
+        async def fake_receive():
             pass
 
         with (
             patch.object(client, "_heartbeat_loop", side_effect=fake_heartbeat),
             patch.object(client, "_receive_loop", side_effect=fake_receive),
         ):
-            await client._session(ws)
+            await client._session()
 
         assert client.agent_id == agent_id
         # First call: register message
@@ -139,8 +129,9 @@ class TestAgentClientSession:
         hb = HeartbeatMessage(agent_id=uuid.uuid4())
         ws = AsyncMock()
         ws.recv = AsyncMock(return_value=hb.model_dump_json())
+        client._ws = ws
 
-        await client._session(ws)
+        await client._session()
         # agent_id should NOT be set
         assert client.agent_id is None
 
@@ -151,13 +142,14 @@ class TestAgentClientSession:
         ack = RegisterAckMessage(agent_id=agent_id)
         ws = AsyncMock()
         ws.recv = AsyncMock(return_value=ack.model_dump_json())
+        client._ws = ws
 
         exc = websockets.exceptions.ConnectionClosedError(rcvd=None, sent=None)
 
-        async def failing_heartbeat(_ws_arg):  # pylint: disable=unused-argument
+        async def failing_heartbeat():
             raise exc
 
-        async def fake_receive(_ws_arg):  # pylint: disable=unused-argument
+        async def fake_receive():
             await asyncio.sleep(10)
 
         with (
@@ -165,7 +157,7 @@ class TestAgentClientSession:
             patch.object(client, "_receive_loop", side_effect=fake_receive),
             pytest.raises(websockets.exceptions.ConnectionClosedError),
         ):
-            await client._session(ws)
+            await client._session()
 
 
 class TestHeartbeatLoop:
@@ -177,16 +169,17 @@ class TestHeartbeatLoop:
         client._running = True
         client.agent_id = uuid.uuid4()
         ws = AsyncMock()
+        client._ws = ws
         send_count = 0
 
-        async def counting_send(_data):  # pylint: disable=unused-argument
+        async def counting_send(data):  # pylint: disable=unused-argument
             nonlocal send_count
             send_count += 1
             if send_count >= 2:
                 client._running = False
 
         ws.send = AsyncMock(side_effect=counting_send)
-        await client._heartbeat_loop(ws)
+        await client._heartbeat_loop()
         assert send_count >= 2
 
         # Verify sent messages are HeartbeatMessages
@@ -200,7 +193,7 @@ class TestReceiveLoop:
 
     @pytest.mark.asyncio
     async def test_disconnect_message_stops_client(self, client):
-        """Verify receiving a DisconnectMessage sets _running=False and closes."""
+        """Verify receiving a DisconnectMessage calls stop."""
         client._running = True
         disc = DisconnectMessage(reason="shutdown")
         ws = AsyncMock()
@@ -214,16 +207,19 @@ class TestReceiveLoop:
                 raise StopAsyncIteration from exc
 
         ws.__anext__ = anext_fn
-        await client._receive_loop(ws)
-        assert client._running is False
-        ws.close.assert_awaited_once()
+        client._ws = ws
+
+        with patch.object(client, "stop", new_callable=AsyncMock) as mock_stop:
+            await client._receive_loop()
+            mock_stop.assert_awaited_once()
+            stop_arg = mock_stop.call_args[0][0]
+            assert isinstance(stop_arg, DisconnectMessage)
 
     @pytest.mark.asyncio
-    async def test_dispatches_to_on_message(self, client):
-        """Verify non-disconnect messages are dispatched to on_message."""
+    async def test_job_assign_dispatches_execute_job(self, client):
+        """Verify JobAssignMessage spawns execute_job task."""
         client._running = True
-        callback = AsyncMock()
-        client.on_message = callback
+        client.agent_id = uuid.uuid4()
         job_id = uuid.uuid4()
         assign = JobAssignMessage(job_id=job_id, product=Product.VEHICLE_GATEWAY)
         ws = AsyncMock()
@@ -237,21 +233,20 @@ class TestReceiveLoop:
                 raise StopAsyncIteration from exc
 
         ws.__anext__ = anext_fn
-        await client._receive_loop(ws)
-        callback.assert_awaited_once()
-        dispatched = callback.call_args[0][0]
-        assert isinstance(dispatched, JobAssignMessage)
-        assert dispatched.job_id == job_id
+        client._ws = ws
+
+        with patch("concerto_agent.client.asyncio.create_task") as mock_task:
+            await client._receive_loop()
+            mock_task.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_no_callback_skips_dispatch(self, client):
-        """Verify messages are silently consumed when on_message is None."""
+    async def test_unrecognized_message_logs_warning(self, client):
+        """Verify unrecognized message types are logged and not dispatched."""
         client._running = True
-        client.on_message = None
-        assign = JobAssignMessage(job_id=uuid.uuid4(), product=Product.VEHICLE_GATEWAY)
+        hb = HeartbeatMessage(agent_id=uuid.uuid4())
         ws = AsyncMock()
         ws.__aiter__ = lambda _self: _self  # noqa: E731
-        msgs = iter([assign.model_dump_json()])
+        msgs = iter([hb.model_dump_json()])
 
         async def anext_fn(_self):  # pylint: disable=unused-argument
             try:
@@ -260,7 +255,12 @@ class TestReceiveLoop:
                 raise StopAsyncIteration from exc
 
         ws.__anext__ = anext_fn
-        await client._receive_loop(ws)  # should not raise
+        client._ws = ws
+
+        with patch("concerto_agent.client.logger.warning") as mock_warn:
+            await client._receive_loop()
+            mock_warn.assert_called_once()
+            assert "HeartbeatMessage" in mock_warn.call_args[0][0]
 
 
 class TestRunReconnection:
@@ -279,8 +279,8 @@ class TestRunReconnection:
         return factory
 
     @pytest.mark.asyncio
-    async def test_run_reconnects_on_connection_error(self, client):
-        """Verify run retries on ConnectionError with exponential backoff."""
+    async def test_run_reconnects_on_connection_refused(self, client):
+        """Verify run retries on ConnectionRefusedError with exponential backoff."""
         call_count = 0
 
         def fake_connect(_url):  # pylint: disable=unused-argument
@@ -289,7 +289,7 @@ class TestRunReconnection:
             if call_count >= 2:
                 client._running = False
             cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(side_effect=ConnectionError("refused"))
+            cm.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("refused"))
             cm.__aexit__ = AsyncMock(return_value=False)
             return cm
 
@@ -317,7 +317,7 @@ class TestRunReconnection:
 
     @pytest.mark.asyncio
     async def test_run_retries_on_1012_service_restart(self, client):
-        """Verify run uses a fixed 10s delay on 1012 (service restart)."""
+        """Verify run retries with backoff on 1012 (service restart)."""
         rcvd = MagicMock()
         rcvd.code = 1012
         rcvd.reason = "Service Restart"
@@ -330,7 +330,9 @@ class TestRunReconnection:
             cm = AsyncMock()
             if call_count >= 2:
                 client._running = False
-                cm.__aenter__ = AsyncMock(side_effect=ConnectionError("stop"))
+                cm.__aenter__ = AsyncMock(
+                    side_effect=ConnectionRefusedError("stop")
+                )
             else:
                 cm.__aenter__ = AsyncMock(side_effect=exc_1012)
             cm.__aexit__ = AsyncMock(return_value=False)
@@ -344,8 +346,8 @@ class TestRunReconnection:
         ):
             await client.run()
 
-        # First sleep should be 10 seconds (1012 handler)
-        mock_sleep.assert_any_call(10)
+        # First sleep should use the base delay (backoff)
+        mock_sleep.assert_any_call(client.reconnect_base_delay)
 
     @pytest.mark.asyncio
     async def test_run_stops_on_cancelled(self, client):
@@ -363,7 +365,7 @@ class TestRunReconnection:
         """Verify run flows through a successful session and resets delay."""
         call_count = 0
 
-        async def fake_session(_ws):  # pylint: disable=unused-argument
+        async def fake_session():
             nonlocal call_count
             call_count += 1
             client._running = False
@@ -395,7 +397,9 @@ class TestRunReconnection:
             if call_count >= 6:
                 client._running = False
             cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(side_effect=OSError("network unreachable"))
+            cm.__aenter__ = AsyncMock(
+                side_effect=ConnectionRefusedError("refused")
+            )
             cm.__aexit__ = AsyncMock(return_value=False)
             return cm
 
@@ -419,7 +423,7 @@ class TestRunReconnection:
         def fake_connect(_url):  # pylint: disable=unused-argument
             client._running = False
             cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(side_effect=ConnectionError("done"))
+            cm.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("done"))
             cm.__aexit__ = AsyncMock(return_value=False)
             return cm
 
@@ -431,42 +435,28 @@ class TestRunReconnection:
         assert client._ws is None
 
     @pytest.mark.asyncio
-    async def test_run_websocket_exception(self, client):
-        """Verify WebSocketException triggers reconnection."""
-        call_count = 0
-
-        def fake_connect(_url):  # pylint: disable=unused-argument
-            nonlocal call_count
-            call_count += 1
-            if call_count >= 2:
-                client._running = False
-            cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(
-                side_effect=websockets.exceptions.WebSocketException("error")
-            )
-            cm.__aexit__ = AsyncMock(return_value=False)
-            return cm
-
-        with (
-            patch("concerto_agent.client.websockets.connect", side_effect=fake_connect),
-            patch("concerto_agent.client.asyncio.sleep", new_callable=AsyncMock),
-        ):
-            await client.run()
-        assert call_count >= 2
-
-    @pytest.mark.asyncio
-    async def test_run_connection_lost_while_stopped(self, client):
-        """Verify run exits cleanly if stopped during a connection error."""
-
-        def fake_connect(_url):  # pylint: disable=unused-argument
-            client._running = False
-            cm = AsyncMock()
-            cm.__aenter__ = AsyncMock(side_effect=ConnectionError("refused"))
-            cm.__aexit__ = AsyncMock(return_value=False)
-            return cm
+    async def test_run_stops_on_unknown_close_code(self, client):
+        """Verify run stops on an unexpected close code."""
+        rcvd = MagicMock()
+        rcvd.code = 1001
+        rcvd.reason = "Going away"
+        exc = websockets.exceptions.ConnectionClosedError(rcvd=rcvd, sent=None)
 
         with patch(
-            "concerto_agent.client.websockets.connect", side_effect=fake_connect
+            "concerto_agent.client.websockets.connect",
+            side_effect=self._connect_cm_raising(exc),
+        ):
+            await client.run()
+        assert client._ws is None
+
+    @pytest.mark.asyncio
+    async def test_run_stops_on_no_close_frame(self, client):
+        """Verify run stops when close frame is None."""
+        exc = websockets.exceptions.ConnectionClosedError(rcvd=None, sent=None)
+
+        with patch(
+            "concerto_agent.client.websockets.connect",
+            side_effect=self._connect_cm_raising(exc),
         ):
             await client.run()
         assert client._ws is None

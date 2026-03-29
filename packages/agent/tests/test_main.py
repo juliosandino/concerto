@@ -4,86 +4,11 @@
 
 from __future__ import annotations
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from concerto_agent.main import _on_message, _run, main
+from concerto_agent.main import _run, main
 from concerto_shared.enums import Product
-from concerto_shared.messages import HeartbeatMessage, JobAssignMessage
-
-
-class TestOnMessage:
-    """Tests for the _on_message handler."""
-
-    @pytest.mark.asyncio
-    async def test_dispatches_job_assignment(self):
-        """Verify _on_message spawns execute_job for JobAssignMessage."""
-        import concerto_agent.main as mod
-
-        agent_id = uuid.uuid4()
-        mock_client = AsyncMock()
-        mock_client.agent_id = agent_id
-        mock_client.send = AsyncMock()
-
-        original = mod._client
-        mod._client = mock_client
-        try:
-            msg = JobAssignMessage(job_id=uuid.uuid4(), product=Product.VEHICLE_GATEWAY)
-            with patch("concerto_agent.main.asyncio.create_task") as mock_task:
-                await _on_message(msg)
-                mock_task.assert_called_once()
-        finally:
-            mod._client = original
-
-    @pytest.mark.asyncio
-    async def test_ignores_non_job_messages(self):
-        """Verify _on_message ignores messages that are not JobAssignMessage."""
-        import concerto_agent.main as mod
-
-        mock_client = AsyncMock()
-        mock_client.agent_id = uuid.uuid4()
-        original = mod._client
-        mod._client = mock_client
-        try:
-            msg = HeartbeatMessage(agent_id=uuid.uuid4())
-            with patch("concerto_agent.main.asyncio.create_task") as mock_task:
-                await _on_message(msg)
-                mock_task.assert_not_called()
-        finally:
-            mod._client = original
-
-    @pytest.mark.asyncio
-    async def test_ignores_when_no_client(self):
-        """Verify _on_message is a no-op when _client is None."""
-        import concerto_agent.main as mod
-
-        original = mod._client
-        mod._client = None
-        try:
-            msg = JobAssignMessage(job_id=uuid.uuid4(), product=Product.VEHICLE_GATEWAY)
-            with patch("concerto_agent.main.asyncio.create_task") as mock_task:
-                await _on_message(msg)
-                mock_task.assert_not_called()
-        finally:
-            mod._client = original
-
-    @pytest.mark.asyncio
-    async def test_ignores_when_no_agent_id(self):
-        """Verify _on_message is a no-op when client has no agent_id."""
-        import concerto_agent.main as mod
-
-        mock_client = AsyncMock()
-        mock_client.agent_id = None
-        original = mod._client
-        mod._client = mock_client
-        try:
-            msg = JobAssignMessage(job_id=uuid.uuid4(), product=Product.VEHICLE_GATEWAY)
-            with patch("concerto_agent.main.asyncio.create_task") as mock_task:
-                await _on_message(msg)
-                mock_task.assert_not_called()
-        finally:
-            mod._client = original
 
 
 class TestRun:
