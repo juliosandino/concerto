@@ -31,16 +31,5 @@ services:
       postgres:
         condition: service_healthy
 
-  chaos:
-    build:
-      context: .
-      dockerfile: Dockerfile.chaos
-    environment:
-      CHAOS_CONTROLLER_URL: ws://controller:8000/ws/agent
-    depends_on:
-      - controller
-    profiles:
-      - chaos
-
 volumes:
   pgdata:

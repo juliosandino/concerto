@@ -5,10 +5,12 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml ./
+COPY scripts/patch_workspace.py scripts/
 COPY packages/shared/ packages/shared/
 COPY packages/agent/ packages/agent/
 COPY packages/chaos/ packages/chaos/
 
-RUN uv sync --no-dev --package concerto-chaos
+RUN python3 scripts/patch_workspace.py packages/shared packages/agent packages/chaos && \
+    uv sync --no-dev --package concerto-chaos
 
 CMD ["uv", "run", "concerto-chaos", "--agents", "5", "--chaos-level", "medium"]
