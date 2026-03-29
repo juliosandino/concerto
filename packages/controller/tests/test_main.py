@@ -6,13 +6,7 @@ import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from concerto_controller.main import (
-    _InterceptHandler,
-    app,
-    health,
-    lifespan,
-    run,
-)
+from concerto_controller.main import _InterceptHandler, app, health, lifespan, run
 
 
 class TestInterceptHandler:
@@ -69,9 +63,7 @@ class TestLifespan:
             patch(
                 "concerto_controller.main.init_db", new_callable=AsyncMock
             ) as mock_init,
-            patch(
-                "concerto_controller.main.heartbeat_monitor", new_callable=AsyncMock
-            ),
+            patch("concerto_controller.main.heartbeat_monitor", new_callable=AsyncMock),
         ):
             async with lifespan(app):
                 mock_init.assert_awaited_once()
