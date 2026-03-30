@@ -44,12 +44,7 @@ async def create_job(
 
     await try_dispatch(session)
 
-    # Notify dashboards of new job
-    from concerto_controller.api.dashboard_ws import notify_dashboards
-
-    await notify_dashboards()
-
-    return _to_info(job)
+    return JobInfo.from_record(job)
 
 
 @router.get("")
@@ -65,7 +60,7 @@ async def list_jobs(
     if product:
         stmt = stmt.where(JobRecord.product == product)
     result = await session.execute(stmt)
-    return [_to_info(r) for r in result.scalars().all()]
+    return [JobInfo.from_record(r) for r in result.scalars().all()]
 
 
 @router.get("/{job_id}")
@@ -77,8 +72,4 @@ async def get_job(
     job = await session.get(JobRecord, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return _to_info(job)
-
-
-def _to_info(job: JobRecord) -> JobInfo:
     return JobInfo.from_record(job)

@@ -7,15 +7,10 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from concerto_controller.api.jobs import (
-    JobCreateBody,
-    _to_info,
-    create_job,
-    get_job,
-    list_jobs,
-)
+from concerto_controller.api.jobs import JobCreateBody, create_job, get_job, list_jobs
 from concerto_controller.db.models import JobRecord
 from concerto_shared.enums import JobStatus, Product
+from concerto_shared.models import JobInfo
 
 
 def _make_job(job_id=None, product=Product.VEHICLE_GATEWAY, status=JobStatus.QUEUED):
@@ -169,18 +164,3 @@ class TestGetJob:
         with pytest.raises(HTTPException) as exc_info:
             await get_job(job_id=uuid.uuid4(), session=session)
         assert exc_info.value.status_code == 404
-
-
-class TestToInfo:
-    """Tests for the _to_info helper."""
-
-    def test_converts_job_record(self):
-        """Verify _to_info converts JobRecord to JobInfo."""
-        job = _make_job()
-        job.result = "passed"
-        job.duration = 3.5
-        info = _to_info(job)
-        assert info.id == job.id
-        assert info.product == Product.VEHICLE_GATEWAY
-        assert info.result == "passed"
-        assert info.duration == 3.5

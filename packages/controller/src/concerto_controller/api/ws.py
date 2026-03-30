@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from concerto_controller.api.dashboard_ws import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_shared.enums import AgentStatus, JobStatus
@@ -123,6 +124,7 @@ async def agent_websocket(ws: WebSocket) -> None:
                 await _handle_agent_disconnect(agent_id)
 
 
+@notifies_dashboards
 async def _handle_job_status(msg: JobStatusMessage) -> None:
     """Process a job status update from an agent."""
     async with async_session() as session:
@@ -155,12 +157,8 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
 
             await try_dispatch(session)
 
-        # Notify dashboards of job status change
-        from concerto_controller.api.dashboard_ws import notify_dashboards
 
-        await notify_dashboards()
-
-
+@notifies_dashboards
 async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
     """Mark agent offline and re-queue any assigned/running job."""
     async with async_session() as session:
@@ -189,8 +187,3 @@ async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
         from concerto_controller.scheduler.dispatcher import try_dispatch
 
         await try_dispatch(session)
-
-        # Notify dashboards of agent disconnect
-        from concerto_controller.api.dashboard_ws import notify_dashboards
-
-        await notify_dashboards()

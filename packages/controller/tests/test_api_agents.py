@@ -7,14 +7,10 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from concerto_controller.api.agents import (
-    _to_info,
-    get_agent,
-    list_agents,
-    remove_agent,
-)
+from concerto_controller.api.agents import get_agent, list_agents, remove_agent
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus, Product
+from concerto_shared.models import AgentInfo
 
 
 def _make_agent(agent_id=None, name="a1", status=AgentStatus.ONLINE, caps=None):
@@ -248,16 +244,3 @@ class TestRemoveAgent:
         assert running_job.assigned_agent_id is None
         assert completed_job.status == JobStatus.COMPLETED
         assert completed_job.assigned_agent_id is None
-
-
-class TestToInfo:
-    """Tests for the _to_info helper."""
-
-    def test_converts_agent_record(self):
-        """Verify _to_info converts AgentRecord to AgentInfo."""
-        agent = _make_agent(caps=["vehicle_gateway", "asset_gateway"])
-        info = _to_info(agent)
-        assert info.id == agent.id
-        assert info.name == agent.name
-        assert info.capabilities == [Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY]
-        assert info.status == agent.status

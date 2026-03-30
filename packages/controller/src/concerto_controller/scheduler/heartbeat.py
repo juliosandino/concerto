@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 
+from concerto_controller.api.dashboard_ws import notifies_dashboards
 from concerto_controller.config import settings
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
@@ -36,6 +37,7 @@ async def heartbeat_monitor() -> None:
             logger.exception("Error in heartbeat monitor")
 
 
+@notifies_dashboards
 async def _check_stale_agents() -> None:
     """Find agents whose heartbeat has expired and handle them."""
     async with async_session() as session:
@@ -52,11 +54,6 @@ async def _check_stale_agents() -> None:
         # Try dispatching re-queued jobs
         async with async_session() as dispatch_session:
             await try_dispatch(dispatch_session)
-
-        # Notify dashboards of stale agent changes
-        from concerto_controller.api.dashboard_ws import notify_dashboards
-
-        await notify_dashboards()
 
 
 async def _get_stale_agents(session) -> list[AgentRecord]:

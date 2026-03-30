@@ -6,6 +6,7 @@ import uuid
 
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import get_session
+from concerto_controller.scheduler.dispatcher import try_dispatch
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import DisconnectMessage
 from concerto_shared.models import AgentInfo
@@ -26,7 +27,7 @@ async def list_agents(
     if status:
         stmt = stmt.where(AgentRecord.status == status)
     result = await session.execute(stmt)
-    return [_to_info(a) for a in result.scalars().all()]
+    return [AgentInfo.from_record(a) for a in result.scalars().all()]
 
 
 @router.get("/{agent_id}")
@@ -38,7 +39,7 @@ async def get_agent(
     agent = await session.get(AgentRecord, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return _to_info(agent)
+    return AgentInfo.from_record(agent)
 
 
 @router.delete("/{agent_id}", status_code=204)
@@ -82,16 +83,4 @@ async def remove_agent(
     await session.delete(agent)
     await session.commit()
 
-    # Try to dispatch any re-queued jobs
-    from concerto_controller.scheduler.dispatcher import try_dispatch
-
     await try_dispatch(session)
-
-    # Notify dashboards
-    from concerto_controller.api.dashboard_ws import notify_dashboards
-
-    await notify_dashboards()
-
-
-def _to_info(agent: AgentRecord) -> AgentInfo:
-    return AgentInfo.from_record(agent)

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import functools
 import uuid
+from collections.abc import Callable, Coroutine
+from typing import Any, ParamSpec, TypeVar
 
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
@@ -18,6 +21,24 @@ from concerto_shared.models import AgentInfo, JobInfo
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from loguru import logger
 from sqlalchemy import select
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def notifies_dashboards(
+    fn: Callable[P, Coroutine[Any, Any, T]],
+) -> Callable[P, Coroutine[Any, Any, T]]:
+    """Decorator that calls :func:`notify_dashboards` after the wrapped async function."""
+
+    @functools.wraps(fn)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        result = await fn(*args, **kwargs)
+        await notify_dashboards()
+        return result
+
+    return wrapper
+
 
 router = APIRouter()
 
@@ -86,6 +107,7 @@ async def dashboard_websocket(ws: WebSocket) -> None:
         dashboard_connections.discard(ws)
 
 
+@notifies_dashboards
 async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
     """Remove an agent (same logic as the REST DELETE endpoint)."""
     async with async_session() as session:
@@ -123,9 +145,8 @@ async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
 
         await try_dispatch(session)
 
-    await notify_dashboards()
 
-
+@notifies_dashboards
 async def _handle_create_job(product: Product, duration: float | None) -> None:
     """Create a job (same logic as the REST POST endpoint)."""
     async with async_session() as session:
@@ -141,5 +162,3 @@ async def _handle_create_job(product: Product, duration: float | None) -> None:
         from concerto_controller.scheduler.dispatcher import try_dispatch
 
         await try_dispatch(session)
-
-    await notify_dashboards()

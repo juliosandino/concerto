@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from concerto_controller.api.dashboard_ws import notify_dashboards
+from concerto_controller.api.dashboard_ws import notifies_dashboards
 from concerto_controller.api.ws import connections
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus
@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 MIN_JOB_DURATION = 5.0  # seconds, for simulation purposes
 
 
+@notifies_dashboards
 async def try_dispatch(session: AsyncSession) -> None:
     """Attempt to assign queued jobs to available compatible agents.
 
@@ -29,8 +30,6 @@ async def try_dispatch(session: AsyncSession) -> None:
 
         if agent := await _get_available_agent(session, job):
             await _assign_job(session, job, agent)
-
-    await notify_dashboards()
 
 
 async def _get_queued_jobs(session: AsyncSession) -> list[JobRecord]:
