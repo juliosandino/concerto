@@ -131,7 +131,7 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=session_calls,
             ),
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.scheduler.heartbeat.connections", {}),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,
@@ -189,7 +189,7 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.scheduler.heartbeat.connections", {}),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,
@@ -242,7 +242,7 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.api.ws.connections", connections),
+            patch("concerto_controller.scheduler.heartbeat.connections", connections),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,
@@ -293,7 +293,7 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.api.ws.connections", connections),
+            patch("concerto_controller.scheduler.heartbeat.connections", connections),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,
@@ -348,7 +348,7 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.scheduler.heartbeat.connections", {}),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,

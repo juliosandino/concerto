@@ -238,6 +238,8 @@ class TestReceiveLoop:
         with patch("concerto_agent.agent.asyncio.create_task") as mock_task:
             await agent._receive_loop()
             mock_task.assert_called_once()
+            # Close the unawaited coroutine to avoid RuntimeWarning
+            mock_task.call_args[0][0].close()
 
     @pytest.mark.asyncio
     async def test_unrecognized_message_logs_warning(self, agent):

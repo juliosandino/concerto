@@ -82,6 +82,8 @@ class TestMain:
         ):
             main()
             mock_run.assert_called_once()
+            # Close the unawaited coroutine to avoid RuntimeWarning
+            mock_run.call_args[0][0].close()
 
     def test_main_default_no_config(self):
         """Verify main() works with no --config arg."""
@@ -94,3 +96,5 @@ class TestMain:
         ):
             main()
             mock_run.assert_called_once()
+            # Close the unawaited coroutine to avoid RuntimeWarning
+            mock_run.call_args[0][0].close()

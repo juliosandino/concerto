@@ -99,7 +99,7 @@ class TestRemoveAgent:
         with (
             patch("concerto_controller.api.ws.connections", {}),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -134,7 +134,7 @@ class TestRemoveAgent:
         with (
             patch("concerto_controller.api.ws.connections", connections),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -170,7 +170,7 @@ class TestRemoveAgent:
         with (
             patch("concerto_controller.api.ws.connections", connections),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -230,7 +230,7 @@ class TestRemoveAgent:
         with (
             patch("concerto_controller.api.ws.connections", {}),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(

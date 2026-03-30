@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 from concerto_controller.api.dashboard_ws import notifies_dashboards
+from concerto_controller.api.ws import connections
 from concerto_controller.config import settings
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
@@ -41,19 +42,16 @@ async def heartbeat_monitor() -> None:
 async def _check_stale_agents() -> None:
     """Find agents whose heartbeat has expired and handle them."""
     async with async_session() as session:
-        stale_agents = await _get_stale_agents(session)
+        if stale_agents := await _get_stale_agents(session):
 
-        if not stale_agents:
-            return
+            for agent in stale_agents:
+                await _handle_stale_agent(session, agent)
 
-        for agent in stale_agents:
-            await _handle_stale_agent(session, agent)
+            await session.commit()
 
-        await session.commit()
-
-        # Try dispatching re-queued jobs
-        async with async_session() as dispatch_session:
-            await try_dispatch(dispatch_session)
+            # Try dispatching re-queued jobs
+            async with async_session() as dispatch_session:
+                await try_dispatch(dispatch_session)
 
 
 async def _get_stale_agents(session) -> list[AgentRecord]:
@@ -100,8 +98,6 @@ async def _close_agent_ws(agent_id) -> None:
 
     :param agent_id: UUID of the agent whose WS to close
     """
-    from concerto_controller.api.ws import connections
-
     ws = connections.pop(agent_id, None)
     if ws:
         try:
