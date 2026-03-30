@@ -97,13 +97,13 @@ class TestRemoveAgent:
         session.commit = AsyncMock()
 
         with (
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.api.agents.agent_connections", {}),
             patch(
                 "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -132,13 +132,13 @@ class TestRemoveAgent:
         connections = {agent_id: mock_ws}
 
         with (
-            patch("concerto_controller.api.ws.connections", connections),
+            patch("concerto_controller.api.agents.agent_connections", connections),
             patch(
                 "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.dashboard_connections",
                 new_callable=AsyncMock,
             ),
         ):
@@ -168,13 +168,13 @@ class TestRemoveAgent:
         connections = {agent_id: mock_ws}
 
         with (
-            patch("concerto_controller.api.ws.connections", connections),
+            patch("concerto_controller.api.agents.agent_connections", connections),
             patch(
                 "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -228,13 +228,13 @@ class TestRemoveAgent:
         session.commit = AsyncMock()
 
         with (
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.api.agents.agent_connections", {}),
             patch(
                 "concerto_controller.api.agents.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):

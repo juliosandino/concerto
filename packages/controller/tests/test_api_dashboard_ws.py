@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from concerto_controller.api.dashboard_ws import (
+from concerto_controller.api.ws.dashboard import (
     _handle_create_job,
     _handle_remove_agent,
     dashboard_connections,
@@ -72,7 +72,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -104,7 +104,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(dead_ws)
         try:
             with patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -154,7 +154,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -188,11 +188,11 @@ class TestDashboardWebsocket:
         try:
             with (
                 patch(
-                    "concerto_controller.api.dashboard_ws.notify_dashboards",
+                    "concerto_controller.api.ws.dashboard.notify_dashboards",
                     new_callable=AsyncMock,
                 ),
                 patch(
-                    "concerto_controller.api.dashboard_ws._handle_remove_agent",
+                    "concerto_controller.api.ws.dashboard._handle_remove_agent",
                     new_callable=AsyncMock,
                 ) as mock_remove,
             ):
@@ -228,11 +228,11 @@ class TestDashboardWebsocket:
         try:
             with (
                 patch(
-                    "concerto_controller.api.dashboard_ws.notify_dashboards",
+                    "concerto_controller.api.ws.dashboard.notify_dashboards",
                     new_callable=AsyncMock,
                 ),
                 patch(
-                    "concerto_controller.api.dashboard_ws._handle_create_job",
+                    "concerto_controller.api.ws.dashboard._handle_create_job",
                     new_callable=AsyncMock,
                 ) as mock_create,
             ):
@@ -257,7 +257,7 @@ class TestDashboardWebsocket:
         dashboard_connections.clear()
         try:
             with patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ):
                 await dashboard_websocket(ws)
@@ -286,11 +286,11 @@ class TestDashboardWebsocket:
         try:
             with (
                 patch(
-                    "concerto_controller.api.dashboard_ws.notify_dashboards",
+                    "concerto_controller.api.ws.dashboard.notify_dashboards",
                     new_callable=AsyncMock,
                 ),
                 patch(
-                    "concerto_controller.api.dashboard_ws.parse_dashboard_message",
+                    "concerto_controller.api.ws.dashboard.parse_dashboard_message",
                     return_value=MagicMock(),
                 ),
             ):
@@ -340,16 +340,16 @@ class TestHandleRemoveAgent:
 
         with (
             patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
-            patch("concerto_controller.api.ws.connections", test_connections),
+            patch("concerto_controller.api.ws.dashboard.agent_connections", test_connections),
             patch(
                 "concerto_controller.scheduler.dispatcher.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -374,7 +374,7 @@ class TestHandleRemoveAgent:
         mock_cm.__aexit__ = AsyncMock(return_value=False)
 
         with patch(
-            "concerto_controller.api.dashboard_ws.async_session", return_value=mock_cm
+            "concerto_controller.api.ws.dashboard.async_session", return_value=mock_cm
         ):
             await _handle_remove_agent(uuid.uuid4())
 
@@ -411,16 +411,16 @@ class TestHandleRemoveAgent:
 
         with (
             patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
-            patch("concerto_controller.api.ws.connections", test_connections),
+            patch("concerto_controller.api.ws.dashboard.agent_connections", test_connections),
             patch(
                 "concerto_controller.scheduler.dispatcher.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -462,16 +462,16 @@ class TestHandleRemoveAgent:
 
         with (
             patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.api.ws.dashboard.agent_connections", {}),
             patch(
                 "concerto_controller.scheduler.dispatcher.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -497,7 +497,7 @@ class TestHandleCreateJob:
 
         with (
             patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
             patch(
@@ -505,7 +505,7 @@ class TestHandleCreateJob:
                 new_callable=AsyncMock,
             ) as mock_dispatch,
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ) as mock_notify,
         ):
@@ -532,7 +532,7 @@ class TestHandleCreateJob:
 
         with (
             patch(
-                "concerto_controller.api.dashboard_ws.async_session",
+                "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
             patch(
@@ -540,11 +540,12 @@ class TestHandleCreateJob:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.dashboard_ws.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
             await _handle_create_job(Product.ASSET_GATEWAY, None)
 
         added_job = mock_session.add.call_args[0][0]
+        assert added_job.duration is None
         assert added_job.duration is None

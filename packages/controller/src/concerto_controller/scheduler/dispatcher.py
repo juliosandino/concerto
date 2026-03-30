@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from concerto_controller.api.dashboard_ws import notifies_dashboards
-from concerto_controller.api.ws import connections
+from concerto_controller.api.ws.connections import agent_connections
+from concerto_controller.api.ws.dashboard import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import JobAssignMessage
@@ -56,7 +56,7 @@ async def _get_available_agent(
     :param job: JobRecord to find an agent for
     :return: A matching AgentRecord, or None if no agent is available
     """
-    connected_ids = list(connections.keys())
+    connected_ids = list(agent_connections.keys())
     if not connected_ids:
         logger.debug(f"No connected agents for job {job.id}")
         return None
@@ -120,7 +120,7 @@ async def _send_job_assignment(agent_id: uuid.UUID, job: JobRecord) -> bool:
     :param job: JobRecord of the job being assigned (must have ID, product, and duration set)
     :return: True if the message was sent successfully, False otherwise
     """
-    ws = connections.get(agent_id)
+    ws = agent_connections.get(agent_id)
     if not ws:
         logger.warning(
             f"No WebSocket connection for agent {agent_id} to send job assignment"

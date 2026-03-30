@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from concerto_controller.api.dashboard_ws import notifies_dashboards
-from concerto_controller.api.ws import connections
+from concerto_controller.api.ws.connections import agent_connections
+from concerto_controller.api.ws.dashboard import notifies_dashboards
 from concerto_controller.config import settings
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
@@ -98,7 +98,7 @@ async def _close_agent_ws(agent_id) -> None:
 
     :param agent_id: UUID of the agent whose WS to close
     """
-    ws = connections.pop(agent_id, None)
+    ws = agent_connections.pop(agent_id, None)
     if ws:
         try:
             await ws.close(code=4002, reason="Heartbeat timeout")

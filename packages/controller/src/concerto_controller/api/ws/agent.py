@@ -5,7 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from concerto_controller.api.dashboard_ws import notifies_dashboards
+from concerto_controller.api.ws.connections import agent_connections
+from concerto_controller.api.ws.dashboard import notifies_dashboards, notify_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_shared.enums import AgentStatus, JobStatus
@@ -21,9 +22,6 @@ from loguru import logger
 from sqlalchemy import select
 
 router = APIRouter()
-
-# In-memory map of connected agents: agent_id → WebSocket
-connections: dict[uuid.UUID, WebSocket] = {}
 
 
 @router.websocket("/ws/agent")
@@ -49,7 +47,7 @@ async def agent_websocket(ws: WebSocket) -> None:
             )
             agent = result.scalar_one_or_none()
 
-            if agent and agent.id in connections:
+            if agent and agent.id in agent_connections:
                 # Agent with this name is already connected — reject
                 await ws.close(
                     code=4002,
@@ -78,14 +76,12 @@ async def agent_websocket(ws: WebSocket) -> None:
         ack = RegisterAckMessage(agent_id=agent_id)
         await ws.send_text(ack.model_dump_json())
 
-        connections[agent_id] = ws
+        agent_connections[agent_id] = ws
         logger.info(
             f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}"
         )
 
         # Notify dashboards of new agent
-        from concerto_controller.api.dashboard_ws import notify_dashboards
-
         await notify_dashboards()
 
         # Trigger dispatcher for any queued jobs
@@ -119,7 +115,7 @@ async def agent_websocket(ws: WebSocket) -> None:
             # When the DELETE handler removes an agent it pops the connection
             # first, so this pop returns None and we skip the redundant (and
             # potentially conflicting) disconnect handler.
-            was_tracked = connections.pop(agent_id, None) is not None
+            was_tracked = agent_connections.pop(agent_id, None) is not None
             if was_tracked:
                 await _handle_agent_disconnect(agent_id)
 

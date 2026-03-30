@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 import uvicorn
 from concerto_controller import logging as _logging  # noqa: F401  sets up log routing
 from concerto_controller.api.agents import router as agents_router
-from concerto_controller.api.dashboard_ws import router as dashboard_ws_router
 from concerto_controller.api.jobs import router as jobs_router
-from concerto_controller.api.ws import router as ws_router
+from concerto_controller.api.ws.agent import router as agent_ws_router
+from concerto_controller.api.ws.dashboard import router as dashboard_ws_router
 from concerto_controller.config import settings
 from concerto_controller.db.session import init_db
 from concerto_controller.scheduler.heartbeat import heartbeat_monitor
@@ -43,7 +43,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Concerto TSS Controller", version="0.1.0", lifespan=lifespan)
 # Websocket Routers
-app.include_router(ws_router)
+app.include_router(agent_ws_router)
 app.include_router(dashboard_ws_router)
 
 # API Routers

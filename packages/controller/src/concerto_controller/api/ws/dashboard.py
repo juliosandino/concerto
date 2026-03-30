@@ -1,12 +1,15 @@
-"""Dashboard WebSocket endpoint and push notification handlers."""
+"""Dashboard WebSocket endpoint and command handlers."""
 
 from __future__ import annotations
 
 import functools
 import uuid
-from collections.abc import Callable, Coroutine
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
 
+from concerto_controller.api.ws.connections import (
+    agent_connections,
+    dashboard_connections,
+)
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_shared.enums import JobStatus, Product
@@ -40,12 +43,6 @@ def notifies_dashboards(
     return wrapper
 
 
-router = APIRouter()
-
-# Connected dashboard clients
-dashboard_connections: set[WebSocket] = set()
-
-
 async def notify_dashboards() -> None:
     """Build a snapshot and push it to every connected dashboard."""
     if not dashboard_connections:
@@ -75,6 +72,9 @@ async def notify_dashboards() -> None:
             dead.append(ws)
     for ws in dead:
         dashboard_connections.discard(ws)
+
+
+router = APIRouter()
 
 
 @router.websocket("/ws/dashboard")
@@ -118,9 +118,7 @@ async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
         if not agent:
             return
 
-        from concerto_controller.api.ws import connections
-
-        ws = connections.pop(agent_id, None)
+        ws = agent_connections.pop(agent_id, None)
         if ws:
             try:
                 msg = DisconnectMessage(reason="Removed by controller")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+from concerto_controller.api.ws.connections import agent_connections
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import get_session
 from concerto_controller.scheduler.dispatcher import try_dispatch
@@ -58,10 +59,7 @@ async def remove_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # If the agent has an active WS connection, tell it to terminate
-    from concerto_controller.api.ws import connections
-
-    ws = connections.pop(agent_id, None)
+    ws = agent_connections.pop(agent_id, None)
     if ws:
         try:
             msg = DisconnectMessage(reason="Removed by controller")
