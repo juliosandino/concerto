@@ -38,51 +38,14 @@ async def heartbeat_monitor() -> None:
 
 async def _check_stale_agents() -> None:
     """Find agents whose heartbeat has expired and handle them."""
-    cutoff = datetime.now(timezone.utc) - timedelta(
-        seconds=settings.heartbeat_timeout_sec
-    )
-
     async with async_session() as session:
-        stmt = (
-            select(AgentRecord)
-            .where(
-                AgentRecord.status != AgentStatus.OFFLINE,
-                AgentRecord.last_heartbeat < cutoff,
-            )
-            .with_for_update(skip_locked=True)
-        )
-        result = await session.execute(stmt)
-        stale_agents = list(result.scalars().all())
+        stale_agents = await _get_stale_agents(session)
 
         if not stale_agents:
             return
 
         for agent in stale_agents:
-            logger.warning(
-                f"Agent {agent.name} ({agent.id}) heartbeat expired (last: {agent.last_heartbeat}, cutoff: {cutoff})"
-            )
-
-            # Close the WebSocket if still connected
-            from concerto_controller.api.ws import connections
-
-            ws = connections.pop(agent.id, None)
-            if ws:
-                try:
-                    await ws.close(code=4002, reason="Heartbeat timeout")
-                except Exception:
-                    pass
-
-            agent.status = AgentStatus.OFFLINE
-
-            # Re-queue any assigned/running job
-            if agent.current_job_id:
-                job = await session.get(JobRecord, agent.current_job_id)
-                if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
-                    logger.info(f"Re-queuing job {job.id} from stale agent {agent.id}")
-                    job.status = JobStatus.QUEUED
-                    job.assigned_agent_id = None
-                    job.started_at = None
-                agent.current_job_id = None
+            await _handle_stale_agent(session, agent)
 
         await session.commit()
 
@@ -94,3 +57,72 @@ async def _check_stale_agents() -> None:
         from concerto_controller.api.dashboard_ws import notify_dashboards
 
         await notify_dashboards()
+
+
+async def _get_stale_agents(session) -> list[AgentRecord]:
+    """Fetch agents whose heartbeat has expired.
+
+    :param session: AsyncSession for database access
+    :return: List of AgentRecord objects with expired heartbeats
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        seconds=settings.heartbeat_timeout_sec
+    )
+    stmt = (
+        select(AgentRecord)
+        .where(
+            AgentRecord.status != AgentStatus.OFFLINE,
+            AgentRecord.last_heartbeat < cutoff,
+        )
+        .with_for_update(skip_locked=True)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def _handle_stale_agent(session, agent: AgentRecord) -> None:
+    """Mark a stale agent offline, close its WS, and re-queue its job.
+
+    :param session: AsyncSession for database access
+    :param agent: AgentRecord to handle
+    """
+    logger.warning(
+        f"Agent {agent.name} ({agent.id}) heartbeat expired "
+        f"(last: {agent.last_heartbeat})"
+    )
+
+    await _close_agent_ws(agent.id)
+    agent.status = AgentStatus.OFFLINE
+
+    if agent.current_job_id:
+        await _requeue_agent_job(session, agent)
+
+
+async def _close_agent_ws(agent_id) -> None:
+    """Close the WebSocket connection for an agent, if still open.
+
+    :param agent_id: UUID of the agent whose WS to close
+    """
+    from concerto_controller.api.ws import connections
+
+    ws = connections.pop(agent_id, None)
+    if ws:
+        try:
+            await ws.close(code=4002, reason="Heartbeat timeout")
+        except Exception:
+            pass
+
+
+async def _requeue_agent_job(session, agent: AgentRecord) -> None:
+    """Re-queue the job assigned to a stale agent.
+
+    :param session: AsyncSession for database access
+    :param agent: AgentRecord whose current job should be re-queued
+    """
+    job = await session.get(JobRecord, agent.current_job_id)
+    if job and job.status in (JobStatus.ASSIGNED, JobStatus.RUNNING):
+        logger.info(f"Re-queuing job {job.id} from stale agent {agent.id}")
+        job.status = JobStatus.QUEUED
+        job.assigned_agent_id = None
+        job.started_at = None
+    agent.current_job_id = None
