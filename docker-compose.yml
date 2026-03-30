@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: concerto
       POSTGRES_PASSWORD: concerto
       POSTGRES_DB: concerto
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

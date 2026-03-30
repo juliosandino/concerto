@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from typing import Callable
+from unittest import case
 
 import websockets
 from concerto_agent.executor import execute_job
@@ -123,11 +124,13 @@ class ConcertoAgent:
         # Wait for server-assigned agent ID
         raw = await self._ws.recv()
         ack = parse_message(raw)
-        if not isinstance(ack, RegisterAckMessage):
-            logger.error(f"Expected RegisterAck, got {type(ack).__name__}")
-            return
-        self.agent_id = ack.agent_id
-        logger.info(f"Registered as {self.agent_name} (id={self.agent_id})")
+        match ack:
+            case RegisterAckMessage():
+                self.agent_id = ack.agent_id
+                logger.info(f"Registered as {self.agent_name} (id={self.agent_id})")
+            case _:
+                logger.error(f"Expected RegisterAck, got {type(ack).__name__}")
+                return
 
         # Run heartbeat and receiver concurrently
         try:

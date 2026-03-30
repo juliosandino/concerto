@@ -81,14 +81,4 @@ async def get_job(
 
 
 def _to_info(job: JobRecord) -> JobInfo:
-    return JobInfo(
-        id=job.id,
-        product=job.product,
-        status=job.status,
-        assigned_agent_id=job.assigned_agent_id,
-        created_at=job.created_at,
-        started_at=job.started_at,
-        completed_at=job.completed_at,
-        result=job.result,
-        duration=job.duration,
-    )
+    return JobInfo.from_record(job)

@@ -7,13 +7,14 @@ import asyncio
 from datetime import datetime, timezone
 
 import websockets
-from concerto_shared.enums import Product
+from concerto_shared.enums import AgentStatus, JobStatus, Product
 from concerto_shared.messages import (
     DashboardCreateJobMessage,
     DashboardRemoveAgentMessage,
     DashboardSnapshotMessage,
     parse_dashboard_message,
 )
+from concerto_shared.models import AgentInfo, JobInfo
 from loguru import logger
 from textual.app import App, ComposeResult
 from textual.containers import Container
@@ -239,88 +240,79 @@ class ConcertoDashboard(App):
         self._update_jobs(snapshot.jobs)
         self._update_stats(snapshot.agents, snapshot.jobs)
 
-    def _update_agents(self, agents: list[dict]) -> None:
+    def _update_agents(self, agents: list[AgentInfo]) -> None:
         table = self.query_one("#agents-table", DataTable)
         table.clear()
         self._agent_row_ids.clear()
 
         status_colors = {
-            "online": "green",
-            "busy": "yellow",
-            "offline": "red",
+            AgentStatus.ONLINE: "green",
+            AgentStatus.BUSY: "yellow",
+            AgentStatus.OFFLINE: "red",
         }
 
         for agent in agents:
-            status = agent["status"]
-            color = status_colors.get(status, "white")
-            caps = ", ".join(agent.get("capabilities", []))
-            job_id = (
-                str(agent.get("current_job_id", ""))[:8]
-                if agent.get("current_job_id")
-                else "\u2014"
-            )
-            last_hb = agent.get("last_heartbeat", "\u2014")
-            if last_hb and last_hb != "\u2014":
-                try:
-                    hb_time = datetime.fromisoformat(last_hb)
-                    age = (datetime.now(timezone.utc) - hb_time).total_seconds()
-                    last_hb = f"{age:.0f}s ago"
-                except (ValueError, TypeError):
-                    pass
+            color = status_colors.get(agent.status, "white")
+            caps = ", ".join(c.value for c in agent.capabilities)
+            job_id = str(agent.current_job_id)[:8] if agent.current_job_id else "\u2014"
+            if agent.last_heartbeat:
+                age = (
+                    datetime.now(timezone.utc) - agent.last_heartbeat
+                ).total_seconds()
+                last_hb = f"{age:.0f}s ago"
+            else:
+                last_hb = "\u2014"
 
             row_key = table.add_row(
-                agent["name"],
-                f"[{color}]{status}[/{color}]",
+                agent.name,
+                f"[{color}]{agent.status.value}[/{color}]",
                 caps,
                 job_id,
                 last_hb,
             )
-            self._agent_row_ids[str(row_key)] = agent["id"]
+            self._agent_row_ids[str(row_key)] = str(agent.id)
 
-    def _update_jobs(self, jobs: list[dict]) -> None:
+    def _update_jobs(self, jobs: list[JobInfo]) -> None:
         table = self.query_one("#jobs-table", DataTable)
         table.clear()
 
         status_colors = {
-            "queued": "white",
-            "assigned": "cyan",
-            "running": "yellow",
-            "completed": "green",
-            "failed": "red",
+            JobStatus.QUEUED: "white",
+            JobStatus.ASSIGNED: "cyan",
+            JobStatus.RUNNING: "yellow",
+            JobStatus.COMPLETED: "green",
+            JobStatus.PASSED: "green",
+            JobStatus.FAILED: "red",
         }
 
         for job in jobs[:50]:
-            status = job["status"]
-            color = status_colors.get(status, "white")
-            short_id = str(job["id"])[:8]
+            color = status_colors.get(job.status, "white")
+            short_id = str(job.id)[:8]
             assigned = (
-                str(job.get("assigned_agent_id", ""))[:8]
-                if job.get("assigned_agent_id")
-                else "\u2014"
+                str(job.assigned_agent_id)[:8] if job.assigned_agent_id else "\u2014"
             )
-            created = job.get("created_at", "\u2014")
-            if created != "\u2014":
-                try:
-                    created = datetime.fromisoformat(created).strftime("%H:%M:%S")
-                except (ValueError, TypeError):
-                    pass
+            created = (
+                job.created_at.strftime("%H:%M:%S") if job.created_at else "\u2014"
+            )
 
             table.add_row(
                 short_id,
-                job["product"],
-                f"[{color}]{status}[/{color}]",
+                job.product.value,
+                f"[{color}]{job.status.value}[/{color}]",
                 assigned,
                 created,
             )
 
-    def _update_stats(self, agents: list[dict], jobs: list[dict]) -> None:
-        online = sum(1 for a in agents if a["status"] == "online")
-        busy = sum(1 for a in agents if a["status"] == "busy")
-        offline = sum(1 for a in agents if a["status"] == "offline")
-        queued = sum(1 for j in jobs if j["status"] == "queued")
-        running = sum(1 for j in jobs if j["status"] == "running")
-        completed = sum(1 for j in jobs if j["status"] == "completed")
-        failed = sum(1 for j in jobs if j["status"] == "failed")
+    def _update_stats(self, agents: list[AgentInfo], jobs: list[JobInfo]) -> None:
+        online = sum(1 for a in agents if a.status == AgentStatus.ONLINE)
+        busy = sum(1 for a in agents if a.status == AgentStatus.BUSY)
+        offline = sum(1 for a in agents if a.status == AgentStatus.OFFLINE)
+        queued = sum(1 for j in jobs if j.status == JobStatus.QUEUED)
+        running = sum(1 for j in jobs if j.status == JobStatus.RUNNING)
+        completed = sum(
+            1 for j in jobs if j.status in (JobStatus.COMPLETED, JobStatus.PASSED)
+        )
+        failed = sum(1 for j in jobs if j.status == JobStatus.FAILED)
 
         stats_text = (
             f"[bold]Agents:[/bold]  [green]{online} online[/green]  "

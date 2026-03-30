@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Union
 from uuid import UUID
 
 from concerto_shared.enums import JobStatus, Product
+from concerto_shared.models import AgentInfo, JobInfo
 from pydantic import BaseModel, Field
 
 
@@ -83,8 +84,8 @@ class DashboardSnapshotMessage(BaseModel):
     """Controller → Dashboard: full state snapshot."""
 
     type: Literal[MessageType.DASHBOARD_SNAPSHOT] = MessageType.DASHBOARD_SNAPSHOT
-    agents: list[dict]
-    jobs: list[dict]
+    agents: list[AgentInfo]
+    jobs: list[JobInfo]
 
 
 class DashboardRemoveAgentMessage(BaseModel):

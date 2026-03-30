@@ -94,13 +94,4 @@ async def remove_agent(
 
 
 def _to_info(agent: AgentRecord) -> AgentInfo:
-    from concerto_shared.enums import Product
-
-    return AgentInfo(
-        id=agent.id,
-        name=agent.name,
-        capabilities=[Product(c) for c in agent.capabilities],
-        status=agent.status,
-        current_job_id=agent.current_job_id,
-        last_heartbeat=agent.last_heartbeat,
-    )
+    return AgentInfo.from_record(agent)

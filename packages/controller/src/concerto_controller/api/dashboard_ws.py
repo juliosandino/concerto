@@ -14,6 +14,7 @@ from concerto_shared.messages import (
     DisconnectMessage,
     parse_dashboard_message,
 )
+from concerto_shared.models import AgentInfo, JobInfo
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from loguru import logger
 from sqlalchemy import select
@@ -34,38 +35,13 @@ async def notify_dashboards() -> None:
             select(AgentRecord).order_by(AgentRecord.name)
         )
         agents = [
-            {
-                "id": str(a.id),
-                "name": a.name,
-                "capabilities": a.capabilities,
-                "status": a.status,
-                "current_job_id": str(a.current_job_id) if a.current_job_id else None,
-                "last_heartbeat": (
-                    a.last_heartbeat.isoformat() if a.last_heartbeat else None
-                ),
-            }
-            for a in agents_result.scalars().all()
+            AgentInfo.from_record(agent) for agent in agents_result.scalars().all()
         ]
 
         jobs_result = await session.execute(
             select(JobRecord).order_by(JobRecord.created_at.desc())
         )
-        jobs = [
-            {
-                "id": str(j.id),
-                "product": j.product,
-                "status": j.status,
-                "assigned_agent_id": (
-                    str(j.assigned_agent_id) if j.assigned_agent_id else None
-                ),
-                "created_at": j.created_at.isoformat() if j.created_at else None,
-                "started_at": j.started_at.isoformat() if j.started_at else None,
-                "completed_at": j.completed_at.isoformat() if j.completed_at else None,
-                "result": j.result,
-                "duration": j.duration,
-            }
-            for j in jobs_result.scalars().all()
-        ]
+        jobs = [JobInfo.from_record(job) for job in jobs_result.scalars().all()]
 
     snapshot = DashboardSnapshotMessage(agents=agents, jobs=jobs)
     payload = snapshot.model_dump_json()
@@ -96,10 +72,11 @@ async def dashboard_websocket(ws: WebSocket) -> None:
             raw = await ws.receive_text()
             msg = parse_dashboard_message(raw)
 
-            if isinstance(msg, DashboardRemoveAgentMessage):
-                await _handle_remove_agent(msg.agent_id)
-            elif isinstance(msg, DashboardCreateJobMessage):
-                await _handle_create_job(msg.product, msg.duration)
+            match msg:
+                case DashboardRemoveAgentMessage():
+                    await _handle_remove_agent(msg.agent_id)
+                case DashboardCreateJobMessage():
+                    await _handle_create_job(msg.product, msg.duration)
 
     except WebSocketDisconnect:
         logger.info("Dashboard client disconnected")
