@@ -242,7 +242,9 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.scheduler.heartbeat.agent_connections", connections),
+            patch(
+                "concerto_controller.scheduler.heartbeat.agent_connections", connections
+            ),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,
@@ -293,7 +295,9 @@ class TestCheckStaleAgents:
                 "concerto_controller.scheduler.heartbeat.async_session",
                 side_effect=[mock_cm, mock_dispatch_cm],
             ),
-            patch("concerto_controller.scheduler.heartbeat.agent_connections", connections),
+            patch(
+                "concerto_controller.scheduler.heartbeat.agent_connections", connections
+            ),
             patch(
                 "concerto_controller.scheduler.heartbeat.try_dispatch",
                 new_callable=AsyncMock,

@@ -10,7 +10,6 @@ import pytest
 from concerto_controller.api.jobs import JobCreateBody, create_job, get_job, list_jobs
 from concerto_controller.db.models import JobRecord
 from concerto_shared.enums import JobStatus, Product
-from concerto_shared.models import JobInfo
 
 
 def _make_job(job_id=None, product=Product.VEHICLE_GATEWAY, status=JobStatus.QUEUED):

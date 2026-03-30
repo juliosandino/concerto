@@ -210,7 +210,8 @@ class TestSendJobAssignment:
         mock_ws = AsyncMock()
 
         with patch(
-            "concerto_controller.scheduler.dispatcher.agent_connections", {agent_id: mock_ws}
+            "concerto_controller.scheduler.dispatcher.agent_connections",
+            {agent_id: mock_ws},
         ):
             result = await _send_job_assignment(agent_id, job)
 
@@ -237,7 +238,8 @@ class TestSendJobAssignment:
         mock_ws.send_text = AsyncMock(side_effect=Exception("broken"))
 
         with patch(
-            "concerto_controller.scheduler.dispatcher.agent_connections", {agent_id: mock_ws}
+            "concerto_controller.scheduler.dispatcher.agent_connections",
+            {agent_id: mock_ws},
         ):
             result = await _send_job_assignment(agent_id, job)
 

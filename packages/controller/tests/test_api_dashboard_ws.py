@@ -343,7 +343,10 @@ class TestHandleRemoveAgent:
                 "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
-            patch("concerto_controller.api.ws.dashboard.agent_connections", test_connections),
+            patch(
+                "concerto_controller.api.ws.dashboard.agent_connections",
+                test_connections,
+            ),
             patch(
                 "concerto_controller.scheduler.dispatcher.try_dispatch",
                 new_callable=AsyncMock,
@@ -414,7 +417,10 @@ class TestHandleRemoveAgent:
                 "concerto_controller.api.ws.dashboard.async_session",
                 return_value=mock_cm,
             ),
-            patch("concerto_controller.api.ws.dashboard.agent_connections", test_connections),
+            patch(
+                "concerto_controller.api.ws.dashboard.agent_connections",
+                test_connections,
+            ),
             patch(
                 "concerto_controller.scheduler.dispatcher.try_dispatch",
                 new_callable=AsyncMock,

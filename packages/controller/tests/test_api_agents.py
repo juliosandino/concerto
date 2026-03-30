@@ -9,8 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from concerto_controller.api.agents import get_agent, list_agents, remove_agent
 from concerto_controller.db.models import AgentRecord, JobRecord
-from concerto_shared.enums import AgentStatus, JobStatus, Product
-from concerto_shared.models import AgentInfo
+from concerto_shared.enums import AgentStatus, JobStatus
 
 
 def _make_agent(agent_id=None, name="a1", status=AgentStatus.ONLINE, caps=None):

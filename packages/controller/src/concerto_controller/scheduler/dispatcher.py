@@ -84,8 +84,8 @@ async def _assign_job(
 ) -> None:
     """Assign a job to an agent and send the assignment over WebSocket.
 
-    If WebSocket delivery fails the assignment is rolled back and both
-    the job and agent are restored to their previous state.
+    If WebSocket delivery fails the assignment is rolled back and both the job and agent are restored to their previous
+    state.
 
     :param session: AsyncSession for database access
     :param job: JobRecord to assign

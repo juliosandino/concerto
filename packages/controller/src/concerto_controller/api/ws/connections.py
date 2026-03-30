@@ -1,3 +1,8 @@
+"""Module to store shared state for WebSocket connections, such as the currently connected agents and dashboard clients.
+
+This allows different parts of the application to access and manage WebSocket connections without circular imports.
+"""
+
 import uuid
 
 from fastapi import WebSocket
