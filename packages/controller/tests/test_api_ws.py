@@ -458,7 +458,7 @@ class TestHandleJobStatus:
 
         assert job.status == JobStatus.COMPLETED
         assert job.result == "passed"
-        assert job.assigned_agent_id is None
+        assert job.assigned_agent_id is agent_id
         assert agent.status == AgentStatus.ONLINE
         assert agent.current_job_id is None
 

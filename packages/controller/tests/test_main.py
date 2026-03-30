@@ -6,7 +6,8 @@ import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from concerto_controller.main import _InterceptHandler, app, health, lifespan, run
+from concerto_controller.logging import _InterceptHandler
+from concerto_controller.main import app, health, lifespan, run
 
 
 class TestInterceptHandler:
@@ -24,7 +25,7 @@ class TestInterceptHandler:
             args=(),
             exc_info=None,
         )
-        with patch("concerto_controller.main.logger") as mock_logger:
+        with patch("concerto_controller.logging.logger") as mock_logger:
             mock_logger.level.return_value.name = "WARNING"
             handler.emit(record)
             mock_logger.opt.assert_called_once()
@@ -43,7 +44,7 @@ class TestInterceptHandler:
             exc_info=None,
         )
         record.levelname = "CUSTOM"
-        with patch("concerto_controller.main.logger") as mock_logger:
+        with patch("concerto_controller.logging.logger") as mock_logger:
             mock_logger.level.side_effect = ValueError("Unknown level")
             handler.emit(record)
             mock_logger.opt.assert_called_once()
