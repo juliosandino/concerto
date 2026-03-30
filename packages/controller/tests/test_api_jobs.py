@@ -44,7 +44,7 @@ class TestCreateJob:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.notifier.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -75,7 +75,7 @@ class TestCreateJob:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.notifier.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):

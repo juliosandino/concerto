@@ -72,7 +72,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.dashboard.async_session",
+                "concerto_controller.api.ws.notifier.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -104,7 +104,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(dead_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.dashboard.async_session",
+                "concerto_controller.api.ws.notifier.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -154,7 +154,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.dashboard.async_session",
+                "concerto_controller.api.ws.notifier.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -348,11 +348,11 @@ class TestHandleRemoveAgent:
                 test_connections,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.dashboard.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.notifier.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -422,11 +422,11 @@ class TestHandleRemoveAgent:
                 test_connections,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.dashboard.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.notifier.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -473,11 +473,11 @@ class TestHandleRemoveAgent:
             ),
             patch("concerto_controller.api.ws.dashboard.agent_connections", {}),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.dashboard.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.notifier.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -507,13 +507,9 @@ class TestHandleCreateJob:
                 return_value=mock_cm,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.dashboard.try_dispatch",
                 new_callable=AsyncMock,
             ) as mock_dispatch,
-            patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
-                new_callable=AsyncMock,
-            ) as mock_notify,
         ):
             await _handle_create_job(Product.VEHICLE_GATEWAY, 5.0)
 
@@ -523,7 +519,6 @@ class TestHandleCreateJob:
         assert added_job.status == JobStatus.QUEUED
         assert added_job.duration == 5.0
         mock_dispatch.assert_awaited_once()
-        mock_notify.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_creates_job_without_duration(self):
@@ -542,11 +537,7 @@ class TestHandleCreateJob:
                 return_value=mock_cm,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "concerto_controller.api.ws.dashboard.notify_dashboards",
+                "concerto_controller.api.ws.dashboard.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):

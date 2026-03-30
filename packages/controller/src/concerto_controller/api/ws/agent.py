@@ -6,9 +6,10 @@ import uuid
 from datetime import datetime, timezone
 
 from concerto_controller.api.ws.connections import agent_connections
-from concerto_controller.api.ws.dashboard import notifies_dashboards, notify_dashboards
+from concerto_controller.api.ws.notifier import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
+from concerto_controller.scheduler.dispatcher import try_dispatch
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import (
     HeartbeatMessage,
@@ -20,6 +21,7 @@ from concerto_shared.messages import (
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from loguru import logger
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -38,72 +40,25 @@ async def agent_websocket(ws: WebSocket) -> None:
             await ws.close(code=4001, reason="First message must be register")
             return
 
-        now = datetime.now(timezone.utc)
-
         async with async_session() as session:
-            # Look up existing agent by name for reconnection
-            result = await session.execute(
-                select(AgentRecord).where(AgentRecord.name == msg.agent_name)
-            )
-            agent = result.scalar_one_or_none()
-
-            if agent and agent.id in agent_connections:
-                # Agent with this name is already connected — reject
-                await ws.close(
-                    code=4002,
-                    reason=f"Agent '{msg.agent_name}' is already connected",
-                )
+            agent_id = await _register_agent(ws, session, msg)
+            if agent_id is None:
                 return
-
-            if agent:
-                agent_id = agent.id
-                agent.capabilities = [str(c) for c in msg.capabilities]
-                agent.status = AgentStatus.ONLINE
-                agent.last_heartbeat = now
-            else:
-                agent_id = uuid.uuid4()
-                agent = AgentRecord(
-                    id=agent_id,
-                    name=msg.agent_name,
-                    capabilities=[str(c) for c in msg.capabilities],
-                    status=AgentStatus.ONLINE,
-                    last_heartbeat=now,
-                )
-                session.add(agent)
-            await session.commit()
-
-        # Send the server-assigned ID back to the agent
-        ack = RegisterAckMessage(agent_id=agent_id)
-        await ws.send_text(ack.model_dump_json())
-
-        agent_connections[agent_id] = ws
-        logger.info(
-            f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}"
-        )
-
-        # Notify dashboards of new agent
-        await notify_dashboards()
-
-        # Trigger dispatcher for any queued jobs
-        async with async_session() as session:
-            from concerto_controller.scheduler.dispatcher import try_dispatch
-
-            await try_dispatch(session)
 
         # Main message loop
         while True:
             raw = await ws.receive_text()
             msg = parse_message(raw)
 
-            if isinstance(msg, HeartbeatMessage):
-                async with async_session() as session:
-                    agent = await session.get(AgentRecord, agent_id)
-                    if agent:
-                        agent.last_heartbeat = datetime.now(timezone.utc)
-                        await session.commit()
-
-            elif isinstance(msg, JobStatusMessage):
-                await _handle_job_status(msg)
+            match msg:
+                case HeartbeatMessage():
+                    async with async_session() as session:
+                        agent = await session.get(AgentRecord, agent_id)
+                        if agent:
+                            agent.last_heartbeat = datetime.now(timezone.utc)
+                            await session.commit()
+                case JobStatusMessage():
+                    await _handle_job_status(msg)
 
     except WebSocketDisconnect:
         logger.info(f"Agent {agent_id} disconnected")
@@ -121,8 +76,70 @@ async def agent_websocket(ws: WebSocket) -> None:
 
 
 @notifies_dashboards
+async def _register_agent(
+    ws: WebSocket,
+    session: AsyncSession,
+    msg: RegisterMessage,
+) -> uuid.UUID | None:
+    """Look up or create an agent record and return its ID.
+
+    Returns ``None`` if the agent name is already connected (the WS is
+    closed with a 4002 code in that case).
+    :param ws: WebSocket connection to the agent
+    :param session: AsyncSession for database access
+    :param msg: RegisterMessage received from the agent
+    :return: UUID of the registered agent, or None if registration failed
+    """
+    result = await session.execute(
+        select(AgentRecord).where(AgentRecord.name == msg.agent_name)
+    )
+    agent = result.scalar_one_or_none()
+
+    # If an agent with this name already exists and is connected, reject the registration
+    if agent and agent.id in agent_connections:
+        await ws.close(
+            code=4002,
+            reason=f"Agent with name '{msg.agent_name}' is already connected",
+        )
+        return None
+
+    # If the agent exists but isn't connected, update its record; otherwise create a new one
+    now = datetime.now(timezone.utc)
+    if agent:
+        agent_id = agent.id
+        agent.capabilities = [str(c) for c in msg.capabilities]
+        agent.status = AgentStatus.ONLINE
+        agent.last_heartbeat = now
+    else:
+        agent_id = uuid.uuid4()
+        agent = AgentRecord(
+            id=agent_id,
+            name=msg.agent_name,
+            capabilities=[str(c) for c in msg.capabilities],
+            status=AgentStatus.ONLINE,
+            last_heartbeat=now,
+        )
+        session.add(agent)
+    await session.commit()
+
+    # Send the server-assigned ID back to the agent
+    ack = RegisterAckMessage(agent_id=agent_id)
+    await ws.send_text(ack.model_dump_json())
+
+    agent_connections[agent_id] = ws
+    logger.info(
+        f"Agent {msg.agent_name} ({agent_id}) registered with capabilities {msg.capabilities}"
+    )
+    await try_dispatch(session)
+    return agent_id
+
+
+@notifies_dashboards
 async def _handle_job_status(msg: JobStatusMessage) -> None:
-    """Process a job status update from an agent."""
+    """Process a job status update from an agent.
+
+    :param msg: JobStatusMessage received from the agent
+    """
     async with async_session() as session:
         job = await session.get(JobRecord, msg.job_id)
         if not job:
@@ -156,7 +173,10 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
 
 @notifies_dashboards
 async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
-    """Mark agent offline and re-queue any assigned/running job."""
+    """Mark agent offline and re-queue any assigned/running job.
+
+    :param agent_id: UUID of the disconnected agent
+    """
     async with async_session() as session:
         agent = await session.get(AgentRecord, agent_id)
         if not agent:
