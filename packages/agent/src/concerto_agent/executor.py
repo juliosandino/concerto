@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import random
 import uuid
 
 from concerto_shared.enums import JobStatus

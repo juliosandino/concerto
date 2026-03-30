@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Callable
-from unittest import case
 
 import websockets
 from concerto_agent.executor import execute_job

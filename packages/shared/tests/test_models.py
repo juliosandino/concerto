@@ -17,7 +17,7 @@ class TestRecordBackedInfo:
         """Subclasses must implement from_record before they can be instantiated."""
 
         class BrokenInfo(RecordBackedInfo[object]):
-            pass
+            """Concrete subclass that omits from_record to trigger TypeError."""
 
         with pytest.raises(TypeError):
             BrokenInfo()
@@ -30,6 +30,8 @@ class TestAgentInfo:
         """Build an AgentInfo from an ORM-like record."""
 
         class AgentRecordStub:
+            """Minimal stand-in for an AgentRecord ORM instance."""
+
             id = uuid4()
             name = "alpha"
             capabilities = ["vehicle_gateway", "asset_gateway"]
@@ -52,6 +54,8 @@ class TestJobInfo:
         """Build a JobInfo from an ORM-like record."""
 
         class JobRecordStub:
+            """Minimal stand-in for a JobRecord ORM instance."""
+
             id = uuid4()
             product = Product.VEHICLE_GATEWAY
             status = JobStatus.QUEUED
