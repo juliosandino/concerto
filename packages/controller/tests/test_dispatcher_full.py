@@ -66,7 +66,7 @@ class TestTryDispatchNoConnectedAgents:
         session.execute = AsyncMock(return_value=mock_result)
 
         with (
-            patch("concerto_controller.api.ws.connections", {}),
+            patch("concerto_controller.scheduler.dispatcher.connections", {}),
             patch(
                 "concerto_controller.api.dashboard_ws.notify_dashboards",
                 new_callable=AsyncMock,
@@ -96,7 +96,10 @@ class TestTryDispatchNoMatchingAgent:
         session.execute = AsyncMock(side_effect=[queued_result, agent_result])
 
         with (
-            patch("concerto_controller.api.ws.connections", {agent_id: MagicMock()}),
+            patch(
+                "concerto_controller.scheduler.dispatcher.connections",
+                {agent_id: MagicMock()},
+            ),
             patch(
                 "concerto_controller.api.dashboard_ws.notify_dashboards",
                 new_callable=AsyncMock,
@@ -130,7 +133,10 @@ class TestTryDispatchSuccess:
         mock_ws = AsyncMock()
 
         with (
-            patch("concerto_controller.api.ws.connections", {agent_id: mock_ws}),
+            patch(
+                "concerto_controller.scheduler.dispatcher.connections",
+                {agent_id: mock_ws},
+            ),
             patch(
                 "concerto_controller.scheduler.dispatcher._send_job_assignment",
                 new_callable=AsyncMock,
@@ -170,7 +176,10 @@ class TestTryDispatchSendFailure:
         session.commit = AsyncMock()
 
         with (
-            patch("concerto_controller.api.ws.connections", {agent_id: MagicMock()}),
+            patch(
+                "concerto_controller.scheduler.dispatcher.connections",
+                {agent_id: MagicMock()},
+            ),
             patch(
                 "concerto_controller.scheduler.dispatcher._send_job_assignment",
                 new_callable=AsyncMock,
@@ -200,7 +209,9 @@ class TestSendJobAssignment:
         job = _make_job()
         mock_ws = AsyncMock()
 
-        with patch("concerto_controller.api.ws.connections", {agent_id: mock_ws}):
+        with patch(
+            "concerto_controller.scheduler.dispatcher.connections", {agent_id: mock_ws}
+        ):
             result = await _send_job_assignment(agent_id, job)
 
         assert result is True
@@ -212,7 +223,7 @@ class TestSendJobAssignment:
         agent_id = uuid.uuid4()
         job = _make_job()
 
-        with patch("concerto_controller.api.ws.connections", {}):
+        with patch("concerto_controller.scheduler.dispatcher.connections", {}):
             result = await _send_job_assignment(agent_id, job)
 
         assert result is False
@@ -225,7 +236,9 @@ class TestSendJobAssignment:
         mock_ws = AsyncMock()
         mock_ws.send_text = AsyncMock(side_effect=Exception("broken"))
 
-        with patch("concerto_controller.api.ws.connections", {agent_id: mock_ws}):
+        with patch(
+            "concerto_controller.scheduler.dispatcher.connections", {agent_id: mock_ws}
+        ):
             result = await _send_job_assignment(agent_id, job)
 
         assert result is False
