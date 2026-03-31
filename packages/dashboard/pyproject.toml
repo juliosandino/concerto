@@ -8,10 +8,11 @@ dependencies = [
     "textual>=1.0",
     "websockets>=13.0",
     "loguru>=0.7",
+    "typer>=0.9",
 ]
 
 [project.scripts]
-concerto-dashboard = "concerto_dashboard.app:run"
+concerto-dashboard = "concerto_dashboard.cli:app"
 
 [tool.uv.sources]
 concerto-shared = { workspace = true }

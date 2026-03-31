@@ -1,0 +1,55 @@
+#main {
+    layout: grid;
+    grid-size: 2 2;
+    grid-rows: 1fr 1fr;
+    grid-columns: 1fr 1fr;
+}
+#agents-panel {
+    row-span: 1;
+    column-span: 1;
+    border: solid green;
+}
+#jobs-panel {
+    row-span: 1;
+    column-span: 1;
+    border: solid cyan;
+}
+#stats-panel {
+    row-span: 1;
+    column-span: 1;
+    border: solid yellow;
+}
+#log-panel {
+    row-span: 1;
+    column-span: 1;
+    border: solid magenta;
+}
+DataTable {
+    height: 100%;
+}
+.panel-title {
+    text-style: bold;
+    padding: 0 1;
+}
+
+JobSubmitScreen {
+    align: center middle;
+}
+#picker-container {
+    width: 55;
+    height: auto;
+    max-height: 24;
+    border: thick $accent;
+    background: $surface;
+    padding: 1 2;
+}
+#picker-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+#duration-label {
+    margin-top: 1;
+}
+#duration-input {
+    margin-bottom: 1;
+}
