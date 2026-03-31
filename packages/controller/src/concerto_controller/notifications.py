@@ -51,7 +51,9 @@ async def notify_dashboards() -> None:
     payload = snapshot.model_dump_json()
 
     dead: list[WebSocket] = []
-    for ws in dashboard_connections:
+    # we cast to list to create a snapshot of the set
+    # since it may be modified during iteration if a connection is closed
+    for ws in list(dashboard_connections):
         try:
             await ws.send_text(payload)
         except Exception:

@@ -88,7 +88,7 @@ class ConcertoAgent:
             # Handle connection closed OK
             except websockets.exceptions.ConnectionClosedOK:
                 logger.info("Connection closed cleanly by server, stopping agent")
-                await self.stop(msg=None)  # No disconnect message, so pass None
+                await self.stop("Connection closed")
             # Handle connection refused (e.g. server not up yet) with backoff retries
             except ConnectionRefusedError:
                 logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
@@ -101,14 +101,12 @@ class ConcertoAgent:
 
         self._ws = None
 
-    async def stop(self, reason: str | None) -> None:
+    async def stop(self, reason: str) -> None:
         """Stop the client and close the WebSocket.
 
-        :param reason: Optional reason for stopping.
+        :param reason: reason for stopping.
         """
-        logger.info(
-            f"Received disconnect: {reason if reason else 'unknown'} — terminating"
-        )
+        logger.info(f"Received disconnect: {reason} — terminating")
         self._running = False
         if self._ws:
             await self._ws.close()
