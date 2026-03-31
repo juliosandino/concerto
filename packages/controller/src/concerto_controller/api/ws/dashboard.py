@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import uuid
 
-from concerto_controller.connections import (
-    agent_connections,
-    dashboard_connections,
-)
-from concerto_controller.notifications import notifies_dashboards, notify_dashboards
+from concerto_controller.connections import agent_connections, dashboard_connections
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
+from concerto_controller.notifications import notifies_dashboards, notify_dashboards
 from concerto_controller.scheduler.dispatcher import try_dispatch
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.messages import (

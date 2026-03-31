@@ -6,9 +6,9 @@ import uuid
 from datetime import datetime, timezone
 
 from concerto_controller.connections import agent_connections
-from concerto_controller.notifications import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
+from concerto_controller.notifications import notifies_dashboards
 from concerto_controller.scheduler.dispatcher import try_dispatch
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import (
@@ -40,6 +40,8 @@ async def agent_websocket(ws: WebSocket) -> None:
             await ws.close(code=4001, reason="First message must be register")
             return
 
+        # Register the agent and get its assigned ID.
+        # If registration fails (e.g. duplicate name), the WS is closed and we return early.
         async with async_session() as session:
             agent_id = await _register_agent(ws, session, msg)
             if agent_id is None:
@@ -166,8 +168,6 @@ async def _handle_job_status(msg: JobStatusMessage) -> None:
 
         # If job finished, try dispatching queued jobs
         if msg.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.PASSED):
-            from concerto_controller.scheduler.dispatcher import try_dispatch
-
             await try_dispatch(session)
 
 
@@ -200,6 +200,4 @@ async def _handle_agent_disconnect(agent_id: uuid.UUID) -> None:
         await session.commit()
 
         # Try to dispatch re-queued jobs
-        from concerto_controller.scheduler.dispatcher import try_dispatch
-
         await try_dispatch(session)

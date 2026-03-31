@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 
 from concerto_controller.connections import agent_connections
-from concerto_controller.notifications import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
+from concerto_controller.notifications import notifies_dashboards
 from concerto_shared.enums import AgentStatus, JobStatus
 from concerto_shared.messages import JobAssignMessage
 from loguru import logger
