@@ -54,11 +54,7 @@ async def agent_websocket(ws: WebSocket) -> None:
 
             match msg:
                 case HeartbeatMessage():
-                    async with async_session() as session:
-                        agent = await session.get(AgentRecord, agent_id)
-                        if agent:
-                            agent.last_heartbeat = datetime.now(timezone.utc)
-                            await session.commit()
+                    await _handle_heartbeat(agent_id)
                 case JobStatusMessage():
                     await _handle_job_status(msg)
 
@@ -134,6 +130,17 @@ async def _register_agent(
     )
     await try_dispatch(session)
     return agent_id
+
+
+async def _handle_heartbeat(agent_id: uuid.UUID) -> None:
+    """Update the agent's last heartbeat timestamp.
+
+    :param agent_id: UUID of the agent that sent the heartbeat
+    """
+    async with async_session() as session:
+        if agent := await session.get(AgentRecord, agent_id):
+            agent.last_heartbeat = datetime.now(timezone.utc)
+            await session.commit()
 
 
 @notifies_dashboards

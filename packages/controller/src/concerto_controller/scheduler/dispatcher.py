@@ -44,7 +44,7 @@ async def _get_queued_jobs(session: AsyncSession) -> list[JobRecord]:
         .order_by(JobRecord.created_at.asc())
         .with_for_update(skip_locked=True)
     )
-    return result.scalars().all() or []
+    return list(result.scalars().all())
 
 
 async def _get_available_agent(

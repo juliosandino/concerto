@@ -129,7 +129,7 @@ class TestAgentWebsocket:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):
@@ -193,7 +193,7 @@ class TestAgentWebsocket:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):
@@ -262,7 +262,7 @@ class TestAgentWebsocket:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):
@@ -322,7 +322,7 @@ class TestAgentWebsocket:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -379,7 +379,7 @@ class TestAgentWebsocket:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -475,7 +475,7 @@ class TestHandleJobStatus:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -532,7 +532,7 @@ class TestHandleJobStatus:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -601,7 +601,7 @@ class TestHandleJobStatus:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -642,7 +642,7 @@ class TestHandleAgentDisconnect:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -691,7 +691,7 @@ class TestHandleAgentDisconnect:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -755,7 +755,7 @@ class TestHandleAgentDisconnect:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -820,7 +820,7 @@ class TestBranchCoverage:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):
@@ -875,7 +875,7 @@ class TestBranchCoverage:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
         ):
@@ -926,7 +926,7 @@ class TestBranchCoverage:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
+                "concerto_controller.api.ws.agent.try_dispatch",
                 new_callable=AsyncMock,
             ),
             patch(

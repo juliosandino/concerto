@@ -5,9 +5,6 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from concerto_controller.config import settings
-from concerto_controller.db.models import (  # noqa: F401  pylint: disable=unused-import
-    Base,
-)
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 engine = create_async_engine(settings.database_url, echo=False)
