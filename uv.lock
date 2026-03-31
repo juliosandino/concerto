@@ -6,10 +6,10 @@ requires-python = ">=3.12"
 members = [
     "concerto",
     "concerto-agent",
-    "concerto-chaos",
     "concerto-controller",
     "concerto-dashboard",
     "concerto-shared",
+    "concerto-simulator",
 ]
 
 [[package]]
@@ -135,10 +135,10 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "concerto-agent" },
-    { name = "concerto-chaos" },
     { name = "concerto-controller" },
     { name = "concerto-dashboard" },
     { name = "concerto-shared" },
+    { name = "concerto-simulator" },
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -150,10 +150,10 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "concerto-agent", editable = "packages/agent" },
-    { name = "concerto-chaos", editable = "packages/chaos" },
     { name = "concerto-controller", editable = "packages/controller" },
     { name = "concerto-dashboard", editable = "packages/dashboard" },
     { name = "concerto-shared", editable = "packages/shared" },
+    { name = "concerto-simulator", editable = "packages/simulator" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
@@ -176,25 +176,6 @@ requires-dist = [
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "websockets", specifier = ">=13.0" },
-]
-
-[[package]]
-name = "concerto-chaos"
-version = "0.1.0"
-source = { editable = "packages/chaos" }
-dependencies = [
-    { name = "concerto-agent" },
-    { name = "concerto-shared" },
-    { name = "httpx" },
-    { name = "websockets" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "concerto-agent", editable = "packages/agent" },
-    { name = "concerto-shared", editable = "packages/shared" },
-    { name = "httpx", specifier = ">=0.27" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
@@ -257,6 +238,25 @@ dependencies = [
 requires-dist = [
     { name = "loguru", specifier = ">=0.7" },
     { name = "pydantic", specifier = ">=2.0" },
+]
+
+[[package]]
+name = "concerto-simulator"
+version = "0.1.0"
+source = { editable = "packages/simulator" }
+dependencies = [
+    { name = "concerto-agent" },
+    { name = "concerto-shared" },
+    { name = "typer" },
+    { name = "websockets" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concerto-agent", editable = "packages/agent" },
+    { name = "concerto-shared", editable = "packages/shared" },
+    { name = "typer", specifier = ">=0.9" },
+    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [[package]]

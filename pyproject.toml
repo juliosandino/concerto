@@ -13,7 +13,7 @@ dev = [
     "concerto-shared",
     "concerto-controller",
     "concerto-agent",
-    "concerto-chaos",
+    "concerto-simulator",
     "concerto-dashboard",
 ]
 
@@ -24,7 +24,7 @@ members = ["packages/*"]
 concerto-shared = { workspace = true }
 concerto-controller = { workspace = true }
 concerto-agent = { workspace = true }
-concerto-chaos = { workspace = true }
+concerto-simulator = { workspace = true }
 concerto-dashboard = { workspace = true }
 
 [tool.pytest.ini_options]

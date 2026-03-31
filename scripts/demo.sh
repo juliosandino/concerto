@@ -32,10 +32,10 @@ done
 echo ""
 
 # 4. Launch chaos simulator
-echo "[4/5] Launching chaos simulator (5 agents, medium chaos)..."
-uv run concerto-chaos --agents 5 --chaos-level medium &
-CHAOS_PID=$!
-echo "Chaos simulator running (PID $CHAOS_PID)."
+echo "[4/5] Launching simulator (5 agents, 10 jobs)..."
+uv run concerto-simulator --agents 5 --jobs 10 &
+SIMULATOR_PID=$!
+echo "Simulator running (PID $SIMULATOR_PID)."
 echo ""
 
 # 5. Launch TUI dashboard
@@ -47,7 +47,7 @@ uv run concerto-dashboard
 # Cleanup on exit
 echo ""
 echo "Shutting down..."
-kill $CHAOS_PID 2>/dev/null || true
+kill $SIMULATOR_PID 2>/dev/null || true
 kill $CONTROLLER_PID 2>/dev/null || true
 docker compose down
 echo "Done."

@@ -77,10 +77,10 @@ curl -X POST http://localhost:8000/jobs \
 uv run concerto-dashboard
 ```
 
-### 7. Run the Chaos Simulator
+### 7. Run the Simulator
 
 ```bash
-uv run concerto-chaos --agents 10 --chaos-level high
+uv run concerto-simulator --agents 10 --jobs 20
 ```
 
 ## Full Stack with Docker Compose
@@ -89,8 +89,8 @@ uv run concerto-chaos --agents 10 --chaos-level high
 # Start controller + postgres
 docker compose up -d
 
-# Also start chaos simulator
-docker compose --profile chaos up -d
+# Also start simulator
+docker compose --profile simulator up -d
 ```
 
 ## Running Tests
@@ -106,7 +106,7 @@ packages/
 ├── shared/       # Pydantic models, enums, WebSocket message schemas
 ├── controller/   # FastAPI server, dispatcher, heartbeat monitor, TUI dashboard
 ├── agent/        # WebSocket client, heartbeat loop, job executor
-└── chaos/        # Chaos simulator with failure profiles
+├── simulator/    # Agent simulator with job queuing
 ```
 
 ## API Endpoints
