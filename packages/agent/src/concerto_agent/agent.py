@@ -54,53 +54,61 @@ class ConcertoAgent:
 
         while self._running:
             try:
-                try:
-                    async with websockets.connect(self.controller_url) as ws:
-                        self._ws = ws
-                        delay = self.reconnect_base_delay  # reset on successful connect
-                        await self._session()
-                # Handle different disconnect scenarios with specific logging and backoff behavior
-                except websockets.exceptions.ConnectionClosedError as err:
-                    if err.rcvd is None:
-                        logger.error(f"Connection closed with no close frame: {err}")
+                async with websockets.connect(self.controller_url) as ws:
+                    self._ws = ws
+                    delay = self.reconnect_base_delay  # reset on successful connect
+                    await self._session()
+            # Handle different disconnect scenarios with specific logging and backoff behavior
+            except websockets.exceptions.ConnectionClosedError as err:
+                if err.rcvd is None:
+                    logger.error(f"Connection closed with no close frame: {err}")
+                    break
+
+                match err.rcvd.code:
+                    # If the server rejected us with 4002, stop immediately
+                    case self.CONNECTION_REJECTED:
+                        logger.error(
+                            f"Registration rejected: {err.rcvd.reason} — stopping agent"
+                        )
                         break
-
-                    match err.rcvd.code:
-                        # If the server rejected us with 4002, stop immediately
-                        case self.CONNECTION_REJECTED:
-                            logger.error(
-                                f"Registration rejected: {err.rcvd.reason} — stopping agent"
-                            )
-                            break
-                        # 1012 = Service Restart — use retry interval
-                        case self.SERVICE_RESTART:
-                            logger.warning(
-                                f"Server restarting (1012), retrying in {delay:.1f}s..."
-                            )
-                            await asyncio.sleep(delay)
-                            delay = min(delay * 2, self.reconnect_max_delay)
-                            continue
-                        # With unexpected code or no code, log and stop
-                        case _:
-                            logger.error(
-                                f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
-                            )
-                            break
-                # Handle connection refused (e.g. server not up yet) with backoff retries
-                except ConnectionRefusedError:
-                    logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
-                    await asyncio.sleep(delay)
-                    delay = min(delay * 2, self.reconnect_max_delay)
-
+                    # 1012 = Service Restart — use retry interval
+                    case self.SERVICE_RESTART:
+                        logger.warning(
+                            f"Server restarting (1012), retrying in {delay:.1f}s..."
+                        )
+                        await asyncio.sleep(delay)
+                        delay = min(delay * 2, self.reconnect_max_delay)
+                        continue
+                    # With unexpected code or no code, log and stop
+                    case _:
+                        logger.error(
+                            f"Connection closed with code {err.rcvd.code}: {err.rcvd.reason} — stopping agent"
+                        )
+                        break
+            # Handle connection closed OK
+            except websockets.exceptions.ConnectionClosedOK:
+                logger.info("Connection closed cleanly by server, stopping agent")
+                await self.stop(msg=None)  # No disconnect message, so pass None
+            # Handle connection refused (e.g. server not up yet) with backoff retries
+            except ConnectionRefusedError:
+                logger.warning(f"Connection refused, retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, self.reconnect_max_delay)
             # Handle cancellation (e.g. from shutdown signal) gracefully
             except asyncio.CancelledError:
+                await self.stop(reason="local shutdown")
                 break
 
         self._ws = None
 
-    async def stop(self, msg: DisconnectMessage) -> None:
-        """Stop the client and close the WebSocket."""
-        logger.info(f"Received disconnect: {msg.reason} — terminating")
+    async def stop(self, reason: str | None) -> None:
+        """Stop the client and close the WebSocket.
+
+        :param reason: Optional reason for stopping.
+        """
+        logger.info(
+            f"Received disconnect: {reason if reason else 'unknown'} — terminating"
+        )
         self._running = False
         if self._ws:
             await self._ws.close()
@@ -108,7 +116,14 @@ class ConcertoAgent:
     async def send(self, msg: WSMessage) -> None:
         """Send a message over the WebSocket."""
         if self._ws:
-            await self._ws.send(msg.model_dump_json())
+            try:
+                await self._ws.send(msg.model_dump_json())
+            except websockets.exceptions.ConnectionClosed:
+                logger.error(
+                    f"Cannot send {type(msg).__name__}: connection already closed"
+                )
+        else:
+            logger.warning("Cannot send message, not connected to controller")
 
     async def _session(self) -> None:
         """Run a single connected session: register, heartbeat, receive."""
@@ -151,7 +166,7 @@ class ConcertoAgent:
             msg = parse_message(raw)
             match msg:
                 case DisconnectMessage():
-                    await self.stop(msg)
+                    await self.stop(msg.reason)
                     return
                 case JobAssignMessage():
                     asyncio.create_task(

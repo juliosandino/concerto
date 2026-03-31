@@ -8,10 +8,11 @@ dependencies = [
     "websockets>=13.0",
     "pydantic-settings>=2.0",
     "pyyaml>=6.0",
+    "typer>=0.9",
 ]
 
 [project.scripts]
-concerto-agent = "concerto_agent.main:main"
+concerto-agent = "concerto_agent.cli:app"
 
 [tool.uv.sources]
 concerto-shared = { workspace = true }

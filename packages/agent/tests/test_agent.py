@@ -211,9 +211,7 @@ class TestReceiveLoop:
 
         with patch.object(agent, "stop", new_callable=AsyncMock) as mock_stop:
             await agent._receive_loop()
-            mock_stop.assert_awaited_once()
-            stop_arg = mock_stop.call_args[0][0]
-            assert isinstance(stop_arg, DisconnectMessage)
+            mock_stop.assert_awaited_once_with("shutdown")
 
     @pytest.mark.asyncio
     async def test_job_assign_dispatches_execute_job(self, agent):

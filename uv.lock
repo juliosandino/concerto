@@ -143,6 +143,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "typer" },
 ]
 
 [package.metadata]
@@ -158,6 +159,7 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "typer", specifier = ">=0.9" },
 ]
 
 [[package]]
@@ -168,6 +170,7 @@ dependencies = [
     { name = "concerto-shared" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
+    { name = "typer" },
     { name = "websockets" },
 ]
 
@@ -176,6 +179,7 @@ requires-dist = [
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "typer", specifier = ">=0.9" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 

@@ -56,11 +56,14 @@ async def _wait_for_jobs_done(
     :param num_jobs: The total number of jobs that were submitted.
     """
     terminal = {JobStatus.COMPLETED, JobStatus.PASSED, JobStatus.FAILED}
+    active = {JobStatus.QUEUED, JobStatus.ASSIGNED, JobStatus.RUNNING}
 
     while True:
         snapshot = await _wait_for_snapshot(ws)
         done = [j for j in snapshot.jobs if j.status in terminal]
-        if len(done) >= num_jobs:
+        in_progress = [j for j in snapshot.jobs if j.status in active]
+        print(f"{[j.status for j in snapshot.jobs]}")
+        if len(done) >= num_jobs and not in_progress:
             passed = sum(1 for j in done if j.status == JobStatus.PASSED)
             failed = sum(1 for j in done if j.status == JobStatus.FAILED)
             logger.info(
@@ -77,7 +80,14 @@ async def run_simulation(
     dashboard_ws_url: str,
     job_interval: float,
 ) -> None:
-    """Spawn *num_agents* real agents and queue *num_jobs* jobs."""
+    """Spawn *num_agents* real agents and queue *num_jobs* jobs.
+
+    :param num_agents: Number of agents to spawn.
+    :param num_jobs: Number of jobs to queue.
+    :param controller_ws_url: WebSocket URL for the controller.
+    :param dashboard_ws_url: WebSocket URL for the dashboard.
+    :param job_interval: Interval between job submissions in seconds.
+    """
     logger.info(
         f"Starting simulation: {num_agents} agents, {num_jobs} jobs "
         f"(agent_ws={controller_ws_url}, dashboard_ws={dashboard_ws_url}, "
@@ -85,7 +95,7 @@ async def run_simulation(
     )
 
     async with websockets.connect(dashboard_ws_url) as ws:
-        async with AgentManager(num_agents, controller_ws_url, ws) as manager:
+        async with AgentManager(num_agents, controller_ws_url, ws):
             await _queue_jobs(ws, num_jobs, job_interval)
             await _wait_for_jobs_done(ws, num_jobs)
 
