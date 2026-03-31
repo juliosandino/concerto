@@ -125,7 +125,7 @@ class TestAgentWebsocket:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -189,7 +189,7 @@ class TestAgentWebsocket:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -258,7 +258,7 @@ class TestAgentWebsocket:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -318,7 +318,7 @@ class TestAgentWebsocket:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -375,7 +375,7 @@ class TestAgentWebsocket:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -425,7 +425,7 @@ class TestHandleJobStatus:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -479,7 +479,7 @@ class TestHandleJobStatus:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -536,7 +536,7 @@ class TestHandleJobStatus:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -605,7 +605,7 @@ class TestHandleJobStatus:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -646,7 +646,7 @@ class TestHandleAgentDisconnect:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -695,7 +695,7 @@ class TestHandleAgentDisconnect:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -759,7 +759,7 @@ class TestHandleAgentDisconnect:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -816,7 +816,7 @@ class TestBranchCoverage:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -871,7 +871,7 @@ class TestBranchCoverage:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -922,7 +922,7 @@ class TestBranchCoverage:
                 "concerto_controller.api.ws.agent.agent_connections", test_connections
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
             patch(
@@ -968,7 +968,7 @@ class TestBranchCoverage:
                 "concerto_controller.api.ws.agent.async_session", return_value=mock_cm
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):

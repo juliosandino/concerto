@@ -102,7 +102,7 @@ class TestRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -173,7 +173,7 @@ class TestRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -233,7 +233,7 @@ class TestRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):

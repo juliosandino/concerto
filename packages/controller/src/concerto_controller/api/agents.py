@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from concerto_controller.api.ws.connections import agent_connections
+from concerto_controller.connections import agent_connections
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import get_session
 from concerto_controller.scheduler.dispatcher import try_dispatch

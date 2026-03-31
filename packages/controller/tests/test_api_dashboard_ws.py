@@ -72,7 +72,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.notifier.async_session",
+                "concerto_controller.notifications.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -104,7 +104,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(dead_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.notifier.async_session",
+                "concerto_controller.notifications.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -154,7 +154,7 @@ class TestNotifyDashboards:
         dashboard_connections.add(mock_ws)
         try:
             with patch(
-                "concerto_controller.api.ws.notifier.async_session",
+                "concerto_controller.notifications.async_session",
                 return_value=mock_cm,
             ):
                 await notify_dashboards()
@@ -352,7 +352,7 @@ class TestHandleRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -426,7 +426,7 @@ class TestHandleRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):
@@ -477,7 +477,7 @@ class TestHandleRemoveAgent:
                 new_callable=AsyncMock,
             ),
             patch(
-                "concerto_controller.api.ws.notifier.notify_dashboards",
+                "concerto_controller.notifications.notify_dashboards",
                 new_callable=AsyncMock,
             ),
         ):

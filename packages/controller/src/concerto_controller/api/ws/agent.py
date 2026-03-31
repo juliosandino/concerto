@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from concerto_controller.api.ws.connections import agent_connections
-from concerto_controller.api.ws.notifier import notifies_dashboards
+from concerto_controller.connections import agent_connections
+from concerto_controller.notifications import notifies_dashboards
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_controller.scheduler.dispatcher import try_dispatch

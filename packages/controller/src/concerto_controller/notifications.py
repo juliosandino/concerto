@@ -3,7 +3,7 @@
 import functools
 from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
 
-from concerto_controller.api.ws.connections import dashboard_connections
+from concerto_controller.connections import dashboard_connections
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_controller.db.session import async_session
 from concerto_shared.messages import DashboardSnapshotMessage
