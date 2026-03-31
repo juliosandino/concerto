@@ -60,12 +60,11 @@ async def _wait_for_jobs_done(
 
     while True:
         snapshot = await _wait_for_snapshot(ws)
-        done = [j for j in snapshot.jobs if j.status in terminal]
-        in_progress = [j for j in snapshot.jobs if j.status in active]
-        print(f"{[j.status for j in snapshot.jobs]}")
+        done = [job for job in snapshot.jobs if job.status in terminal]
+        in_progress = [job for job in snapshot.jobs if job.status in active]
         if len(done) >= num_jobs and not in_progress:
-            passed = sum(1 for j in done if j.status == JobStatus.PASSED)
-            failed = sum(1 for j in done if j.status == JobStatus.FAILED)
+            passed = sum(1 for job in done if job.status == JobStatus.PASSED)
+            failed = sum(1 for job in done if job.status == JobStatus.FAILED)
             logger.info(
                 f"All {num_jobs} jobs finished — {passed} passed, {failed} failed"
             )

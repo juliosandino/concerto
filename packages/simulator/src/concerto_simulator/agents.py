@@ -109,9 +109,14 @@ class AgentManager:
         for agent in self._agents:
             if agent.agent_id is None:
                 continue
-            msg = DashboardRemoveAgentMessage(agent_id=agent.agent_id)
-            await self._ws.send(msg.model_dump_json())
-            logger.info(f"Removed agent {agent.agent_name} ({agent.agent_id})")
+            try:
+                msg = DashboardRemoveAgentMessage(agent_id=agent.agent_id)
+                await self._ws.send(msg.model_dump_json())
+                logger.info(f"Removed agent {agent.agent_name} ({agent.agent_id})")
+            except websockets.exceptions.ConnectionClosed:
+                logger.warning(
+                    f"Cannot remove agent {agent.agent_name}: connection already closed"
+                )
 
         await asyncio.gather(*self._tasks, return_exceptions=True)
         logger.info("All agent tasks stopped")
