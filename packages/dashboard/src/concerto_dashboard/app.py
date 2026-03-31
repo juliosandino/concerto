@@ -114,8 +114,8 @@ class ConcertoDashboard(App):
     def _on_job_submitted(self, result: JobSubmitResult | None) -> None:
         """Handle the result from the job submission screen.
 
-        :param result: The JobSubmitResult containing the selected product and duration
-                       or None if the submission was cancelled.
+        :param result: The JobSubmitResult containing the selected product and duration or None if the submission was
+            cancelled.
         """
         if result is not None:
             asyncio.create_task(

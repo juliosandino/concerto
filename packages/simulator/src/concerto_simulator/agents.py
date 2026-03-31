@@ -56,6 +56,13 @@ class AgentManager:
         controller_ws_url: str,
         ws: websockets.ClientConnection,
     ) -> None:
+        """Initialize the manager with the number of agents to create and the controller WebSocket URL.
+
+        :param num_agents: The number of agents to create and manage.
+        :param controller_ws_url: The WebSocket URL of the controller to connect agents to.
+        :param ws: An active WebSocket connection to the controller for receiving snapshots and sending cleanup
+            messages.
+        """
         self._controller_ws_url = controller_ws_url
         self._ws = ws
         self._agents: list[ConcertoAgent] = []
