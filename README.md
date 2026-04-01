@@ -1,5 +1,8 @@
 # Concerto — Test Scheduling Service (TSS)
 
+[![CI](https://github.com/juliosandino/concerto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/juliosandino/concerto/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/juliosandino/concerto/branch/main/graph/badge.svg)](https://codecov.io/gh/juliosandino/concerto)
+
 A distributed test scheduling service that manages Hardware-in-the-Loop (HIL) testbed agents. The controller routes test jobs to compatible agents, monitors heartbeats, and automatically re-queues jobs when agents disconnect.
 
 ## Architecture

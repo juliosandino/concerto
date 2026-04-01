@@ -22,6 +22,14 @@ jobs:
       - name: Run pytest
         run: tox -e pytest
 
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: .tox/pytest/coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Run black checker
         run: tox -e black_checker
 
