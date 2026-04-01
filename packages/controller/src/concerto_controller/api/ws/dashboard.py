@@ -94,6 +94,7 @@ async def _handle_remove_agent(agent_id: uuid.UUID) -> None:
         await try_dispatch(session)
 
 
+@notifies_dashboards
 async def _handle_create_job(product: Product, duration: float | None) -> None:
     """Create a job (same logic as the REST POST endpoint).
 

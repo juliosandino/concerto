@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tox and tox-uv
+        run: pip install tox tox-uv
+
+      - name: Run pytest
+        run: tox -e pytest
+
+      - name: Run black checker
+        run: tox -e black_checker
+
+      - name: Run isort checker
+        run: tox -e isort_checker
+
+      - name: Run flake8
+        run: tox -e flake8
+
+      - name: Run pylint
+        run: tox -e pylint
+
+      - name: Run docformatter checker
+        run: tox -e docformatter_checker

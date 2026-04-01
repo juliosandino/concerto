@@ -1,0 +1,12 @@
+{
+    "servers": {
+        "concerto": {
+            "command": "uv",
+            "args": [
+                "run",
+                "concerto-controller",
+                "mcp"
+            ]
+        }
+    }
+}
