@@ -6,6 +6,7 @@ import uuid
 
 from concerto_controller.db.models import JobRecord
 from concerto_controller.db.session import get_session
+from concerto_controller.scheduler.dispatcher import try_dispatch
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.models import JobInfo
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,9 +39,6 @@ async def create_job(
     session.add(job)
     await session.commit()
     await session.refresh(job)
-
-    # Trigger dispatcher asynchronously
-    from concerto_controller.scheduler.dispatcher import try_dispatch
 
     await try_dispatch(session)
 

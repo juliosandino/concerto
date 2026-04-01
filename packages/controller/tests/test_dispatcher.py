@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus, Product
 
 
@@ -15,8 +16,6 @@ class TestDispatcherMatchingLogic:
     @pytest.mark.asyncio
     async def test_dispatcher_assigns_compatible_agent(self):
         """Verify that a queued job gets matched to an online agent with the right capability."""
-        from concerto_controller.db.models import AgentRecord, JobRecord
-
         agent_id = uuid.uuid4()
         job_id = uuid.uuid4()
 
@@ -41,8 +40,6 @@ class TestDispatcherMatchingLogic:
 
     def test_no_match_when_capabilities_mismatch(self):
         """Agent only supports asset_gateway but job needs vehicle_gateway."""
-        from concerto_controller.db.models import AgentRecord, JobRecord
-
         agent = AgentRecord(
             id=uuid.uuid4(),
             name="asset-only",
@@ -61,8 +58,6 @@ class TestDispatcherMatchingLogic:
 
     def test_no_match_when_agent_busy(self):
         """Busy agents should not be matched."""
-        from concerto_controller.db.models import AgentRecord
-
         agent = AgentRecord(
             id=uuid.uuid4(),
             name="busy-agent",
@@ -75,8 +70,6 @@ class TestDispatcherMatchingLogic:
 
     def test_no_match_when_agent_offline(self):
         """Offline agents should not be matched."""
-        from concerto_controller.db.models import AgentRecord
-
         agent = AgentRecord(
             id=uuid.uuid4(),
             name="offline-agent",

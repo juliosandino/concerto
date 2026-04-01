@@ -10,6 +10,7 @@ import pytest
 from concerto_controller.api.jobs import JobCreateBody, create_job, get_job, list_jobs
 from concerto_controller.db.models import JobRecord
 from concerto_shared.enums import JobStatus, Product
+from fastapi import HTTPException
 
 
 def _make_job(job_id=None, product=Product.VEHICLE_GATEWAY, status=JobStatus.QUEUED):
@@ -155,8 +156,6 @@ class TestGetJob:
     @pytest.mark.asyncio
     async def test_404_when_not_found(self):
         """Verify get_job raises 404."""
-        from fastapi import HTTPException
-
         session = AsyncMock()
         session.get = AsyncMock(return_value=None)
 

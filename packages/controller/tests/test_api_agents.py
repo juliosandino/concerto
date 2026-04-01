@@ -10,6 +10,7 @@ import pytest
 from concerto_controller.api.agents import get_agent, list_agents, remove_agent
 from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus
+from fastapi import HTTPException
 
 
 def _make_agent(agent_id=None, name="a1", status=AgentStatus.ONLINE, caps=None):
@@ -67,8 +68,6 @@ class TestGetAgent:
     @pytest.mark.asyncio
     async def test_404_when_not_found(self):
         """Verify get_agent raises 404 when agent doesn't exist."""
-        from fastapi import HTTPException
-
         session = AsyncMock()
         session.get = AsyncMock(return_value=None)
 
@@ -184,8 +183,6 @@ class TestRemoveAgent:
     @pytest.mark.asyncio
     async def test_404_when_agent_not_found(self):
         """Verify remove_agent raises 404 when agent doesn't exist."""
-        from fastapi import HTTPException
-
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
         session = AsyncMock()

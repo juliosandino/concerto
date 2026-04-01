@@ -6,6 +6,7 @@ import asyncio
 from typing import Annotated
 
 import typer
+from concerto_simulator.simulator import run_simulation
 from loguru import logger
 
 app = typer.Typer(help="Concerto fleet simulator — spawn agents and queue jobs.")
@@ -29,9 +30,7 @@ def run(
         float, typer.Option(help="Seconds between job submissions")
     ] = 2.0,
 ) -> None:
-    """Spawn simulated agents and queue jobs against the controller."""
-    from concerto_simulator.simulator import run_simulation
-
+    """CLI entry point to run the simulator with specified parameters."""
     try:
         asyncio.run(
             run_simulation(

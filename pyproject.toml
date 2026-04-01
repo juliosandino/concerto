@@ -70,10 +70,8 @@ disable = [
     "import-error",            # E0401 — false positive in uv workspace monorepo
     "no-member",               # E1101 — false positive with websockets library
     "not-callable",            # E1102 — false positive with SQLAlchemy
-    "import-outside-toplevel", # C0415 — intentional circular-import avoidance
     "broad-exception-caught",  # W0718 — intentional in WS/network error handling
     "duplicate-code",          # R0801 — similar patterns across packages are acceptable
-    "global-statement",        # W0603 — used intentionally for singleton pattern
 ]
 
 [tool.pylint.format]

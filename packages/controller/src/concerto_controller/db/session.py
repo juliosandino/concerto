@@ -1,5 +1,6 @@
 """Database engine, session factory, and Alembic migration helpers."""
 
+import asyncio
 from pathlib import Path
 
 from alembic import command
@@ -14,6 +15,7 @@ _ALEMBIC_INI = Path(__file__).resolve().parents[3] / "alembic.ini"
 
 
 def _alembic_cfg() -> Config:
+    """Create an Alembic Config object with the database URL set from settings."""
     cfg = Config(str(_ALEMBIC_INI))
     cfg.set_main_option("sqlalchemy.url", settings.database_url)
     return cfg
@@ -21,8 +23,6 @@ def _alembic_cfg() -> Config:
 
 async def init_db() -> None:
     """Run Alembic migrations to bring the database up to date."""
-    import asyncio
-
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, command.upgrade, _alembic_cfg(), "head")
 

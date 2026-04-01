@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from concerto_controller.db.models import AgentRecord, JobRecord
 from concerto_shared.enums import AgentStatus, JobStatus
 
 
@@ -13,8 +14,6 @@ class TestHeartbeatStaleDetection:
 
     def test_agent_is_stale_when_heartbeat_expired(self):
         """Agent with old heartbeat should be considered stale."""
-        from concerto_controller.db.models import AgentRecord
-
         timeout = 15  # seconds
         cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout)
 
@@ -31,7 +30,6 @@ class TestHeartbeatStaleDetection:
 
     def test_agent_is_not_stale_when_heartbeat_recent(self):
         """Agent with recent heartbeat should not be stale."""
-        from concerto_controller.db.models import AgentRecord
 
         timeout = 15
         cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout)
@@ -48,7 +46,6 @@ class TestHeartbeatStaleDetection:
 
     def test_offline_agent_is_not_rechecked(self):
         """Agents already offline should be skipped."""
-        from concerto_controller.db.models import AgentRecord
 
         agent = AgentRecord(
             id=uuid.uuid4(),
@@ -63,7 +60,6 @@ class TestHeartbeatStaleDetection:
 
     def test_stale_agent_job_should_be_requeued(self):
         """When an agent goes stale, its assigned job should be re-queued."""
-        from concerto_controller.db.models import AgentRecord, JobRecord
 
         job_id = uuid.uuid4()
         agent_id = uuid.uuid4()

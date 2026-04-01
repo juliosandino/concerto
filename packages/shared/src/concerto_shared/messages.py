@@ -9,7 +9,7 @@ from uuid import UUID
 
 from concerto_shared.enums import JobStatus, Product
 from concerto_shared.models import AgentInfo, JobInfo
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
 
 class MessageType(StrEnum):
@@ -122,8 +122,6 @@ WSMessage = Annotated[
 def parse_message(raw: str | bytes) -> WSMessage:
     """Parse a raw WebSocket text frame into a typed message."""
     data = json.loads(raw)
-    from pydantic import TypeAdapter
-
     adapter = TypeAdapter(WSMessage)
     return adapter.validate_python(data)
 
@@ -142,7 +140,5 @@ DashboardWSMessage = Annotated[
 def parse_dashboard_message(raw: str | bytes) -> DashboardWSMessage:
     """Parse a raw WebSocket text frame into a dashboard message."""
     data = json.loads(raw)
-    from pydantic import TypeAdapter
-
     adapter = TypeAdapter(DashboardWSMessage)
     return adapter.validate_python(data)
