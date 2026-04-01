@@ -130,9 +130,8 @@ class ConcertoMCP:
     ) -> None:
         """Initialize the MCP server and controller connection.
 
-        :param controller_url: The WebSocket URL of the controller dashboard endpoint.
-            Defaults to ws://localhost:8000/ws/dashboard.
-
+        :param controller_url: The WebSocket URL of the controller dashboard endpoint. Defaults to
+            ws://localhost:8000/ws/dashboard.
         """
         self._conn = ControllerConnection(controller_url)
         self._mcp = FastMCP("Concerto Controller", lifespan=self._lifespan)
