@@ -68,6 +68,7 @@ async def _wait_for_jobs_done(
             logger.info(
                 f"All {num_jobs} jobs finished — {passed} passed, {failed} failed"
             )
+            await asyncio.sleep(5)
             return
         logger.info(f"Jobs progress: {len(done)}/{num_jobs} complete")
 
