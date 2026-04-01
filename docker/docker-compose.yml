@@ -19,8 +19,8 @@ services:
 
   controller:
     build:
-      context: .
-      dockerfile: Dockerfile.controller
+      context: ..
+      dockerfile: docker/Dockerfile.controller
     ports:
       - "8000:8000"
     environment:
@@ -38,10 +38,12 @@ services:
 
   alpha-agent:
     build:
-      context: .
-      dockerfile: Dockerfile.agent
+      context: ..
+      dockerfile: docker/Dockerfile.agent
     environment:
-      DASHBOARD_URL: ws://controller:8000/ws/dashboard
+      AGENT_AGENT_NAME: testbed-alpha
+      AGENT_CAPABILITIES: '["vehicle_gateway","asset_gateway"]'
+      AGENT_CONTROLLER_URL: ws://controller:8000/ws/agent
     depends_on:
       - controller
     networks:
@@ -49,8 +51,8 @@ services:
   
   dashboard:
     build:
-      context: .
-      dockerfile: Dockerfile.dashboard
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
     environment:
       DASHBOARD_URL: ws://controller:8000/ws/dashboard
       TERM: xterm-256color

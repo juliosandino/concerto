@@ -12,8 +12,6 @@ dependencies = [
     "alembic>=1.13",
     "pydantic-settings>=2.0",
     "typer>=0.9",
-    "fastmcp>=2.0",
-    "websockets>=13.0",
 ]
 
 [project.scripts]

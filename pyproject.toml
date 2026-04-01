@@ -16,6 +16,7 @@ dev = [
     "concerto-agent",
     "concerto-simulator",
     "concerto-dashboard",
+    "concerto-mcp",
 ]
 
 [tool.uv.workspace]
@@ -27,6 +28,7 @@ concerto-controller = { workspace = true }
 concerto-agent = { workspace = true }
 concerto-simulator = { workspace = true }
 concerto-dashboard = { workspace = true }
+concerto-mcp = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

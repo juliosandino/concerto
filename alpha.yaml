@@ -1,4 +1,0 @@
-agent_name: testbed-alpha
-capabilities:
-  - vehicle_gateway
-  - asset_gateway

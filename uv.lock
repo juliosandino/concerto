@@ -8,6 +8,8 @@ members = [
     "concerto-agent",
     "concerto-controller",
     "concerto-dashboard",
+    "concerto-integration-tests",
+    "concerto-mcp",
     "concerto-shared",
     "concerto-simulator",
 ]
@@ -266,6 +268,7 @@ dev = [
     { name = "concerto-agent" },
     { name = "concerto-controller" },
     { name = "concerto-dashboard" },
+    { name = "concerto-mcp" },
     { name = "concerto-shared" },
     { name = "concerto-simulator" },
     { name = "httpx" },
@@ -282,6 +285,7 @@ dev = [
     { name = "concerto-agent", editable = "packages/agent" },
     { name = "concerto-controller", editable = "packages/controller" },
     { name = "concerto-dashboard", editable = "packages/dashboard" },
+    { name = "concerto-mcp", editable = "packages/mcp" },
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "concerto-simulator", editable = "packages/simulator" },
     { name = "httpx", specifier = ">=0.27" },
@@ -297,8 +301,7 @@ version = "0.1.0"
 source = { editable = "packages/agent" }
 dependencies = [
     { name = "concerto-shared" },
-    { name = "pydantic-settings" },
-    { name = "pyyaml" },
+    { name = "loguru" },
     { name = "typer" },
     { name = "websockets" },
 ]
@@ -306,8 +309,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "concerto-shared", editable = "packages/shared" },
-    { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "loguru", specifier = ">=0.7" },
     { name = "typer", specifier = ">=0.9" },
     { name = "websockets", specifier = ">=13.0" },
 ]
@@ -321,12 +323,10 @@ dependencies = [
     { name = "asyncpg" },
     { name = "concerto-shared" },
     { name = "fastapi" },
-    { name = "fastmcp" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
-    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -335,12 +335,10 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
     { name = "concerto-shared", editable = "packages/shared" },
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "fastmcp", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
-    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [[package]]
@@ -362,6 +360,50 @@ requires-dist = [
     { name = "textual", specifier = ">=1.0" },
     { name = "typer", specifier = ">=0.9" },
     { name = "websockets", specifier = ">=13.0" },
+]
+
+[[package]]
+name = "concerto-integration-tests"
+version = "0.1.0"
+source = { editable = "packages/integration-tests" }
+dependencies = [
+    { name = "concerto-agent" },
+    { name = "concerto-controller" },
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concerto-agent", editable = "packages/agent" },
+    { name = "concerto-controller", editable = "packages/controller" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+]
+
+[[package]]
+name = "concerto-mcp"
+version = "0.1.0"
+source = { editable = "packages/mcp" }
+dependencies = [
+    { name = "concerto-shared" },
+    { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "loguru" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "concerto-shared", editable = "packages/shared" },
+    { name = "fastmcp", specifier = ">=2.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "loguru", specifier = ">=0.7" },
+    { name = "typer", specifier = ">=0.9" },
 ]
 
 [[package]]

@@ -9,7 +9,6 @@ import uvicorn
 from alembic import command
 from concerto_controller.config import settings
 from concerto_controller.db.session import _alembic_cfg
-from concerto_controller.mcp import ConcertoMCP
 
 app = typer.Typer(help="Concerto TSS Controller CLI.")
 db_app = typer.Typer(help="Database migration commands.")
@@ -49,19 +48,6 @@ def run() -> None:
         port=settings.ws_port,
         log_level="info",
     )
-
-
-@app.command()
-def mcp(
-    controller_url: str = typer.Option(
-        "ws://localhost:8000/ws/dashboard",
-        "--controller-url",
-        "-u",
-        help="WebSocket URL of the controller dashboard endpoint.",
-    ),
-) -> None:
-    """Start the MCP server for IDE integration."""
-    ConcertoMCP(controller_url).run()
 
 
 def main() -> None:

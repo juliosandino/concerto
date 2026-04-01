@@ -14,22 +14,11 @@ runner = CliRunner()
 class TestCLI:
     """Tests for the typer CLI."""
 
-    def test_run_creates_agent_and_calls_run(self):
-        """Verify the run command loads settings, creates ConcertoAgent, and calls run()."""
+    def test_run_with_defaults(self):
+        """Verify the run command creates ConcertoAgent with defaults and calls run()."""
         mock_agent = AsyncMock()
 
         with (
-            patch(
-                "concerto_agent.cli.load_settings",
-                return_value=AsyncMock(
-                    agent_name="test",
-                    capabilities=[Product.VEHICLE_GATEWAY],
-                    controller_url="ws://localhost:8000/ws/agent",
-                    heartbeat_interval_sec=5,
-                    reconnect_base_delay_sec=1.0,
-                    reconnect_max_delay_sec=30.0,
-                ),
-            ),
             patch(
                 "concerto_agent.cli.ConcertoAgent",
                 return_value=mock_agent,
@@ -39,35 +28,70 @@ class TestCLI:
             result = runner.invoke(app, [])
 
         assert result.exit_code == 0
-        mock_cls.assert_called_once()
+        mock_cls.assert_called_once_with(
+            agent_name="testbed-01",
+            capabilities=[Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY],
+            controller_url="ws://localhost:8000/ws/agent",
+            heartbeat_interval=5,
+            reconnect_base_delay=1.0,
+            reconnect_max_delay=30.0,
+        )
         mock_asyncio_run.assert_called_once()
 
-    def test_run_passes_config_path(self):
-        """Verify the run command forwards --config to load_settings."""
+    def test_run_with_cli_args(self):
+        """Verify CLI flags override defaults."""
         mock_agent = AsyncMock()
 
         with (
             patch(
-                "concerto_agent.cli.load_settings",
-                return_value=AsyncMock(
-                    agent_name="yaml-agent",
-                    capabilities=[],
-                    controller_url="ws://x",
-                    heartbeat_interval_sec=5,
-                    reconnect_base_delay_sec=1.0,
-                    reconnect_max_delay_sec=30.0,
-                ),
-            ) as mock_load,
+                "concerto_agent.cli.ConcertoAgent",
+                return_value=mock_agent,
+            ) as mock_cls,
+            patch("concerto_agent.cli.asyncio.run"),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "--agent-name",
+                    "my-agent",
+                    "--capability",
+                    "vehicle_gateway",
+                    "--controller-url",
+                    "ws://other:9000/ws/agent",
+                    "--heartbeat-interval",
+                    "10",
+                ],
+            )
+
+        assert result.exit_code == 0
+        mock_cls.assert_called_once_with(
+            agent_name="my-agent",
+            capabilities=[Product.VEHICLE_GATEWAY],
+            controller_url="ws://other:9000/ws/agent",
+            heartbeat_interval=10,
+            reconnect_base_delay=1.0,
+            reconnect_max_delay=30.0,
+        )
+
+    def test_run_with_env_vars(self, monkeypatch):
+        """Verify environment variables override defaults."""
+        monkeypatch.setenv("AGENT_AGENT_NAME", "env-agent")
+        monkeypatch.setenv("AGENT_HEARTBEAT_INTERVAL_SEC", "15")
+        mock_agent = AsyncMock()
+
+        with (
             patch(
                 "concerto_agent.cli.ConcertoAgent",
                 return_value=mock_agent,
-            ),
+            ) as mock_cls,
             patch("concerto_agent.cli.asyncio.run"),
         ):
-            result = runner.invoke(app, ["--config", "/tmp/agent.yaml"])
+            result = runner.invoke(app, [])
 
         assert result.exit_code == 0
-        mock_load.assert_called_once_with("/tmp/agent.yaml")
+        call_kwargs = mock_cls.call_args[1]
+        assert call_kwargs["agent_name"] == "env-agent"
+        assert call_kwargs["heartbeat_interval"] == 15
 
     def test_help(self):
         """Verify --help works."""

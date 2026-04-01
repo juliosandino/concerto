@@ -15,8 +15,8 @@ services:
 
   test-runner:
     build:
-      context: .
-      dockerfile: packages/integration-tests/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile.integration-tests
     depends_on:
       postgres:
         condition: service_healthy
