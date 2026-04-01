@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Annotated
 
 import typer
@@ -11,6 +12,16 @@ from concerto_shared.enums import Product
 from loguru import logger
 
 app = typer.Typer(help="Concerto agent — connects to the controller and executes jobs.")
+
+
+def _parse_capabilities(value: str) -> list[Product]:
+    """Parse capabilities from a JSON array or comma-separated string."""
+    stripped = value.strip()
+    if stripped.startswith("["):
+        items = json.loads(stripped)
+    else:
+        items = [v.strip() for v in stripped.split(",") if v.strip()]
+    return [Product(item) for item in items]
 
 
 @app.command()
@@ -25,14 +36,14 @@ def run(
         ),
     ] = "testbed-01",
     capabilities: Annotated[
-        list[Product],
+        str,
         typer.Option(
             "--capability",
             "-p",
             envvar="AGENT_CAPABILITIES",
-            help="Product capabilities (repeat for multiple).",
+            help="Product capabilities (JSON array or comma-separated).",
         ),
-    ] = (Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY),
+    ] = "vehicle_gateway,asset_gateway",
     controller_url: Annotated[
         str,
         typer.Option(
@@ -68,13 +79,14 @@ def run(
     ] = 30.0,
 ) -> None:
     """Start the agent, connecting to the controller."""
+    parsed_capabilities = _parse_capabilities(capabilities)
     agent = ConcertoAgent(
         agent_name=agent_name,
-        capabilities=list(capabilities),
+        capabilities=parsed_capabilities,
         controller_url=controller_url,
         heartbeat_interval=heartbeat_interval,
         reconnect_base_delay=reconnect_base_delay,
         reconnect_max_delay=reconnect_max_delay,
     )
-    logger.info(f"Agent {agent_name} starting (caps={capabilities})")
+    logger.info(f"Agent {agent_name} starting (caps={parsed_capabilities})")
     asyncio.run(agent.run())

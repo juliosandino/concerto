@@ -95,11 +95,11 @@ No local Python required. Docker Compose builds and runs everything:
 git clone https://github.com/juliosandino/concerto.git
 cd concerto
 
-# Start the full stack (postgres, controller, agent, dashboard)
+# Start the full stack (postgres, controller, agents, dashboard)
 docker compose -f docker/docker-compose.yml up -d
 
-# Include the simulator for load testing
-docker compose -f docker/docker-compose.yml --profile simulator up -d
+# Attach to the dashboard
+docker compose -f docker/docker-compose.yml attach dashboard
 ```
 
 ## Usage
@@ -112,13 +112,7 @@ If running locally (not Docker Compose), start a PostgreSQL instance:
 docker compose -f docker/docker-compose.yml up -d postgres
 ```
 
-### 2. Run database migrations
-
-```bash
-uv run concerto-controller db migrate
-```
-
-### 3. Start the controller
+### 2. Start the controller
 
 ```bash
 uv run concerto-controller run
@@ -126,7 +120,7 @@ uv run concerto-controller run
 
 The controller starts on `http://localhost:8000`.
 
-### 4. Connect an agent
+### 3. Connect an agent
 
 ```bash
 uv run concerto-agent \
@@ -143,7 +137,7 @@ AGENT_CAPABILITIES='["vehicle_gateway","asset_gateway"]' \
 uv run concerto-agent
 ```
 
-### 5. Submit a test job
+### 4. Submit a test job
 
 ```bash
 curl -X POST http://localhost:8000/jobs \
@@ -151,13 +145,13 @@ curl -X POST http://localhost:8000/jobs \
   -d '{"product": "vehicle_gateway", "duration": 10}'
 ```
 
-### 6. Launch the TUI dashboard
+### 5. Launch the TUI dashboard
 
 ```bash
 uv run concerto-dashboard
 ```
 
-### 7. Run the simulator
+### 6. Run the simulator
 
 ```bash
 uv run concerto-simulator --agents 10 --jobs 20 --job-interval 1.5

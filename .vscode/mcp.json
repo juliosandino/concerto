@@ -7,8 +7,11 @@
                 "docker build -f docker/Dockerfile.mcp -t concerto-mcp . >&2 && docker run -i --rm --network ${CONCERTO_NETWORK} -e CONCERTO_CONTROLLER_URL=${CONCERTO_CONTROLLER_URL} concerto-mcp"
             ],
             "env": {
-                "CONCERTO_CONTROLLER_URL": "http://localhost:8000",
-                "CONCERTO_NETWORK": "host"
+                "CONCERTO_CONTROLLER_URL": "http://controller:8000",
+                "CONCERTO_NETWORK": "docker_frontend"
+                // If running controller outside of docker
+                // "CONCERTO_CONTROLLER_URL": "http://localhostl:8000",
+                // "CONCERTO_NETWORK": "host"
             }
         }
     }

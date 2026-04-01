@@ -33,10 +33,14 @@ concerto-mcp = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--import-mode=importlib"
+filterwarnings = [
+    "ignore::RuntimeWarning:ast",
+]
 testpaths = [
     "packages/controller/tests",
     "packages/agent/tests",
     "packages/shared/tests",
+    "packages/mcp/tests",
 ]
 
 [tool.coverage.run]

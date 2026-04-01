@@ -48,13 +48,26 @@ services:
       - controller
     networks:
       - frontend
+
+  beta-agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agent
+    environment:
+      AGENT_AGENT_NAME: testbed-beta
+      AGENT_CAPABILITIES: environmental_monitor
+      AGENT_CONTROLLER_URL: ws://controller:8000/ws/agent
+    depends_on:
+      - controller
+    networks:
+      - frontend
   
   dashboard:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dashboard
     environment:
-      DASHBOARD_URL: ws://controller:8000/ws/dashboard
+      DASHBOARD_CONTROLLER_URL: ws://controller:8000/ws/dashboard
       TERM: xterm-256color
       COLORTERM: truecolor
     depends_on:

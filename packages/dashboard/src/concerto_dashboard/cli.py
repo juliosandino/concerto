@@ -12,7 +12,11 @@ app = typer.Typer(help="Concerto TUI Dashboard")
 def run(
     controller_url: Annotated[
         str,
-        typer.Option(help="Controller WebSocket URL"),
+        typer.Option(
+            "--controller-url",
+            envvar="DASHBOARD_CONTROLLER_URL",
+            help="Controller WebSocket URL",
+        ),
     ] = "ws://localhost:8000/ws/dashboard",
 ) -> None:
     """Launch the Concerto TUI dashboard."""
