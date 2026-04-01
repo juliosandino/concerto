@@ -1,0 +1,36 @@
+name: Integration Test
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run integration tests
+        run: >
+          docker compose -f docker-compose.integration.yml up
+          --build
+          --abort-on-container-exit
+          --exit-code-from test-runner
+
+      - name: Extract test results
+        if: always()
+        run: |
+          container=$(docker compose -f docker-compose.integration.yml ps -aq test-runner | head -1)
+          docker cp "$container:/results/integration.xml" integration.xml || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration.xml
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.integration.yml down -v

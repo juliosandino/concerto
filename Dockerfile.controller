@@ -9,4 +9,4 @@ COPY packages/ packages/
 
 RUN uv sync --no-dev --package concerto-controller
 
-CMD ["uv", "run", "concerto-controller"]
+CMD ["uv", "run", "concerto-controller", "run"]

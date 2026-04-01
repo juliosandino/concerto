@@ -160,5 +160,3 @@ packages/
 | `AGENT_CAPABILITIES`        | `["vehicle_gateway","asset_gateway"]` | Supported products |
 | `AGENT_CONTROLLER_URL`      | `ws://localhost:8000/ws/agent` | Controller WS URL   |
 | `AGENT_HEARTBEAT_INTERVAL_SEC` | `5`  | Heartbeat frequency            |
-
-concerto: A Test Sheduling Service
