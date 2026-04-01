@@ -39,15 +39,9 @@ class TestCreateJob:
 
         body = JobCreateBody(product=Product.VEHICLE_GATEWAY)
 
-        with (
-            patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "concerto_controller.notifications.notify_dashboards",
-                new_callable=AsyncMock,
-            ),
+        with patch(
+            "concerto_controller.api.jobs.try_dispatch",
+            new_callable=AsyncMock,
         ):
             result = await create_job(body=body, session=session)
 
@@ -70,15 +64,9 @@ class TestCreateJob:
 
         body = JobCreateBody(product=Product.ASSET_GATEWAY, duration=5.0)
 
-        with (
-            patch(
-                "concerto_controller.scheduler.dispatcher.try_dispatch",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "concerto_controller.notifications.notify_dashboards",
-                new_callable=AsyncMock,
-            ),
+        with patch(
+            "concerto_controller.api.jobs.try_dispatch",
+            new_callable=AsyncMock,
         ):
             result = await create_job(body=body, session=session)
 

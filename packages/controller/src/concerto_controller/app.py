@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-import uvicorn
 from concerto_controller import logging as _logging  # noqa: F401  sets up log routing
 from concerto_controller.api.agents import router as agents_router
 from concerto_controller.api.jobs import router as jobs_router
@@ -55,17 +54,3 @@ app.include_router(agents_router)
 async def health():
     """Health check endpoint."""
     return {"status": "ok"}
-
-
-def run() -> None:
-    """Start the controller server."""
-    uvicorn.run(
-        "concerto_controller.main:app",
-        host=settings.ws_host,
-        port=settings.ws_port,
-        log_level="info",
-    )
-
-
-if __name__ == "__main__":
-    run()
