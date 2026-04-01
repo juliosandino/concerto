@@ -14,8 +14,12 @@ def mcp() -> ConcertoMCP:
 
 
 async def _get_tool_fn(mcp: ConcertoMCP, name: str):
-    """Retrieve the raw callable for a registered tool by name."""
-    tool = await mcp._mcp.get_tool(name)
+    """Retrieve the raw callable for a registered tool by name.
+
+    :param mcp: The ConcertoMCP instance to extract the tool from.
+    :param name: The registered tool name.
+    """
+    tool = await mcp._mcp.get_tool(name)  # pylint: disable=protected-access
     return tool.fn
 
 
@@ -23,6 +27,11 @@ async def _get_tool_fn(mcp: ConcertoMCP, name: str):
 
 
 async def test_list_agents(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify list_agents returns all agents when called without filters.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = [{"id": "abc", "name": "a1", "status": "online"}]
     httpx_mock.add_response(url="http://test-controller:8000/agents", json=payload)
 
@@ -32,6 +41,11 @@ async def test_list_agents(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_list_agents_with_status(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify list_agents passes the status query parameter when provided.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = [{"id": "abc", "name": "a1", "status": "online"}]
     httpx_mock.add_response(json=payload)
 
@@ -47,6 +61,11 @@ async def test_list_agents_with_status(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_get_agent(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify get_agent returns the correct agent by UUID.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = {"id": "abc", "name": "a1", "status": "online"}
     httpx_mock.add_response(url="http://test-controller:8000/agents/abc", json=payload)
 
@@ -56,6 +75,11 @@ async def test_get_agent(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_get_agent_not_found(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify get_agent raises HTTPStatusError for a 404 response.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     httpx_mock.add_response(
         url="http://test-controller:8000/agents/missing", status_code=404
     )
@@ -69,6 +93,11 @@ async def test_get_agent_not_found(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_remove_agent(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify remove_agent sends a DELETE request and returns a success message.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     httpx_mock.add_response(
         url="http://test-controller:8000/agents/abc", method="DELETE", status_code=204
     )
@@ -82,6 +111,11 @@ async def test_remove_agent(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_list_jobs(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify list_jobs returns all jobs when called without filters.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = [{"id": "j1", "product": "vehicle_gateway", "status": "queued"}]
     httpx_mock.add_response(url="http://test-controller:8000/jobs", json=payload)
 
@@ -91,6 +125,11 @@ async def test_list_jobs(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_list_jobs_filtered(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify list_jobs passes status and product query parameters when provided.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = []
     httpx_mock.add_response(json=payload)
 
@@ -107,6 +146,11 @@ async def test_list_jobs_filtered(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_get_job(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify get_job returns the correct job by UUID.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = {"id": "j1", "product": "vehicle_gateway", "status": "queued"}
     httpx_mock.add_response(url="http://test-controller:8000/jobs/j1", json=payload)
 
@@ -119,6 +163,11 @@ async def test_get_job(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_create_job(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify create_job sends a POST request and returns the created job.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = {"id": "j2", "product": "vehicle_gateway", "status": "queued"}
     httpx_mock.add_response(
         url="http://test-controller:8000/jobs",
@@ -133,6 +182,11 @@ async def test_create_job(mcp: ConcertoMCP, httpx_mock) -> None:
 
 
 async def test_create_job_with_duration(mcp: ConcertoMCP, httpx_mock) -> None:
+    """Verify create_job includes duration in the request body when provided.
+
+    :param mcp: ConcertoMCP fixture.
+    :param httpx_mock: pytest-httpx mock fixture.
+    """
     payload = {
         "id": "j3",
         "product": "asset_gateway",

@@ -11,6 +11,7 @@ runner = CliRunner()
 
 
 def test_cli_default_url() -> None:
+    """Verify the CLI uses the default controller URL when no option is given."""
     with patch("concerto_mcp.cli.ConcertoMCP") as mock_cls:
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
@@ -21,6 +22,7 @@ def test_cli_default_url() -> None:
 
 
 def test_cli_custom_url() -> None:
+    """Verify the CLI forwards a custom --controller-url to ConcertoMCP."""
     with patch("concerto_mcp.cli.ConcertoMCP") as mock_cls:
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance

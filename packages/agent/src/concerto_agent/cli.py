@@ -32,7 +32,7 @@ def run(
             envvar="AGENT_CAPABILITIES",
             help="Product capabilities (repeat for multiple).",
         ),
-    ] = [Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY],
+    ] = (Product.VEHICLE_GATEWAY, Product.ASSET_GATEWAY),
     controller_url: Annotated[
         str,
         typer.Option(

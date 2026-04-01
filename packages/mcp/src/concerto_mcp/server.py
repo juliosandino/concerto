@@ -26,11 +26,10 @@ class ConcertoMCP:
         async def list_agents(status: AgentStatus | None = None) -> list[dict]:
             """List all registered agents.
 
-            Returns each agent's id, name, status (online/busy/offline),
-            capabilities list, current_job_id, and last_heartbeat timestamp.
+            Returns each agent's id, name, status (online/busy/offline), capabilities list, current_job_id, and
+            last_heartbeat timestamp.
 
-            :param status: Optional filter — only return agents with this status
-                           (online, busy, or offline).
+            :param status: Optional filter — only return agents with this status (online, busy, or offline).
             """
             logger.info(f"list_agents called (status={status})")
             params: dict[str, str] = {}
@@ -47,8 +46,7 @@ class ConcertoMCP:
         async def get_agent(agent_id: str) -> dict:
             """Get detailed information for a specific agent by its UUID.
 
-            Returns the agent's id, name, status, capabilities, current_job_id,
-            and last_heartbeat.
+            Returns the agent's id, name, status, capabilities, current_job_id, and last_heartbeat.
 
             :param agent_id: The UUID of the agent to retrieve.
             """
@@ -63,8 +61,8 @@ class ConcertoMCP:
         async def remove_agent(agent_id: str) -> str:
             """Remove an agent from the system.
 
-            The agent's WebSocket connection is closed, any active jobs
-            (ASSIGNED or RUNNING) are re-queued, and the agent record is deleted.
+            The agent's WebSocket connection is closed, any active jobs (ASSIGNED or RUNNING) are re-queued, and the
+            agent record is deleted.
 
             :param agent_id: The UUID of the agent to remove.
             """
@@ -82,14 +80,13 @@ class ConcertoMCP:
         ) -> list[dict]:
             """List all jobs, ordered by creation date (newest first).
 
-            Returns each job's id, product, status, assigned_agent_id,
-            created_at, started_at, completed_at, result, and duration.
+            Returns each job's id, product, status, assigned_agent_id, created_at, started_at, completed_at, result, and
+            duration.
 
-            :param status: Optional filter — only return jobs with this status
-                           (queued, assigned, running, completed, passed, or failed).
-            :param product: Optional filter — only return jobs for this product
-                            (vehicle_gateway, asset_gateway, environmental_monitor,
-                            or industrial_gateway).
+            :param status: Optional filter — only return jobs with this status (queued, assigned, running, completed,
+                  passed, or failed).
+            :param product: Optional filter — only return jobs for this product (vehicle_gateway, asset_gateway,
+                  environmental_monitor, or industrial_gateway).
             """
             logger.info(f"list_jobs called (status={status}, product={product})")
             params: dict[str, str] = {}
@@ -108,8 +105,8 @@ class ConcertoMCP:
         async def get_job(job_id: str) -> dict:
             """Get detailed information for a specific job by its UUID.
 
-            Returns the job's id, product, status, assigned_agent_id,
-            created_at, started_at, completed_at, result, and duration.
+            Returns the job's id, product, status, assigned_agent_id, created_at, started_at, completed_at, result, and
+            duration.
 
             :param job_id: The UUID of the job to retrieve.
             """
@@ -124,14 +121,12 @@ class ConcertoMCP:
         async def create_job(product: Product, duration: float | None = None) -> dict:
             """Queue a new test job for the specified product.
 
-            The job is created with status 'queued' and the scheduler will
-            automatically dispatch it to an available agent with the matching
-            capability.
+            The job is created with status 'queued' and the scheduler will automatically dispatch it to an available
+            agent with the matching capability.
 
-            :param product: The product to test (vehicle_gateway, asset_gateway,
-                            environmental_monitor, or industrial_gateway).
-            :param duration: Optional job duration in seconds. If omitted the
-                             agent will use its default execution time.
+            :param product: The product to test (vehicle_gateway, asset_gateway, environmental_monitor, or
+                  industrial_gateway).
+            :param duration: Optional job duration in seconds. If omitted the agent will use its default execution time.
             """
             logger.info(f"create_job called (product={product}, duration={duration})")
             body: dict = {"product": str(product)}

@@ -74,6 +74,7 @@ disable = [
     "not-callable",            # E1102 — false positive with SQLAlchemy
     "broad-exception-caught",  # W0718 — intentional in WS/network error handling
     "duplicate-code",          # R0801 — similar patterns across packages are acceptable
+    "redefined-outer-name",    # W0621 — intentional in test modules for fixtures
 ]
 
 [tool.pylint.format]
