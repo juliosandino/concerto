@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from typer.testing import CliRunner
-
 from concerto_controller.cli import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

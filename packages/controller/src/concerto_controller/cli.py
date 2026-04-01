@@ -23,7 +23,9 @@ def migrate() -> None:
 
 @db_app.command()
 def revision(
-    m: Optional[str] = typer.Option("new migration", "--m", "-m", help="Revision message."),
+    m: Optional[str] = typer.Option(
+        "new migration", "--m", "-m", help="Revision message."
+    ),
 ) -> None:
     """Generate a new auto-detected migration revision."""
     command.revision(_alembic_cfg(), message=m, autogenerate=True)
