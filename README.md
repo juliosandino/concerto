@@ -7,22 +7,38 @@ A distributed test scheduling service that manages Hardware-in-the-Loop (HIL) te
 
 ## Architecture
 
-```
-┌──────────────┐       WebSocket        ┌──────────────────┐
-│  Agent(s)    │◄──────────────────────►│   Controller     │
-│  (testbeds)  │  register/heartbeat/   │   (scheduler)    │
-│              │  job assignment         │                  │
-└──────────────┘                        │  Dispatcher      │──► PostgreSQL
-                                        │  Heartbeat Mon.  │
-┌──────────────┐       WebSocket        │                  │
-│  Chaos       │  spawns mock agents ──►│  REST API        │
-│  Simulator   │                        │  (jobs, fleet)   │
-└──────────────┘                        │                  │
-                                        │                  │
-┌──────────────┐   REST (polling)       │                  │
-│  TUI         │◄──────────────────────►│                  │
-│  Dashboard   │                        │                  │
-└──────────────┘                        └──────────────────┘
+```mermaid
+graph TB
+    subgraph Controller["Controller (FastAPI)"]
+        REST["REST API\n/agents /jobs /health"]
+        WSA["WS /ws/agent"]
+        WSD["WS /ws/dashboard"]
+        DISP["Dispatcher"]
+        HB["Heartbeat Monitor"]
+    end
+
+    subgraph Agents["Agent(s) — HIL Testbeds"]
+        A1["Agent 1"]
+        A2["Agent N"]
+    end
+
+    DB[(PostgreSQL)]
+    SIM["Chaos Simulator"]
+    DASH["TUI Dashboard"]
+
+    subgraph MCP["MCP Server (stdio)"]
+        TOOLS["list_agents / list_jobs / queue_job"]
+    end
+
+    A1 <-->|"register / heartbeat / job assign"| WSA
+    A2 <-->|"register / heartbeat / job assign"| WSA
+    SIM -->|"spawns mock agents"| WSA
+    DASH <-->|"snapshots / create job / remove agent"| WSD
+    MCP <-->|"WebSocket"| WSD
+    MCP -.->|"stdio"| IDE["IDE / Copilot"]
+    DISP --> DB
+    HB --> DB
+    REST --> DB
 ```
 
 ## Prerequisites

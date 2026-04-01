@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant A as Agent
+    participant C as Controller
+    participant HM as Heartbeat Monitor
+    participant D as Dispatcher
+
+    Note over A,C: 1. Registration
+    A->>C: RegisterMessage(name, capabilities)
+    C->>C: Create/update AgentRecord (ONLINE)<br/>set last_heartbeat = now()
+    C-->>A: RegisterAckMessage(agent_id)
+
+    Note over A,C: 2. Concurrent tasks start
+    par Heartbeat Loop (every 5s)
+        loop Every heartbeat_interval (5s)
+            A->>C: HeartbeatMessage(agent_id)
+            C->>C: Update last_heartbeat = now()
+        end
+    and Receive Loop
+        A->>A: Listen for JobAssign / Disconnect
+    end
+
+    Note over HM: 3. Monitor runs every 5s
+    loop Every check_interval (5s)
+        HM->>HM: Query agents where<br/>last_heartbeat < (now - 15s)<br/>AND status ≠ OFFLINE
+    end
+
+    Note over A,C: 4. Normal heartbeat flow
+    A->>C: HeartbeatMessage(agent_id)
+    C->>C: last_heartbeat = now()
+
+    Note over A,HM: 5. Agent goes silent (connection lost)
+    A--xC: ✗ No heartbeat for >15s
+
+    HM->>HM: Detect stale agent<br/>(last_heartbeat expired)
+    HM->>C: Close WebSocket
+    HM->>HM: Agent status → OFFLINE
+
+    alt Agent had an active job
+        HM->>HM: Job status: ASSIGNED/RUNNING → QUEUED<br/>Unassign agent, clear started_at
+        HM->>D: try_dispatch()
+        D->>D: Find available ONLINE agent<br/>with matching capabilities
+        D-->>C: Assign re-queued job<br/>to new agent
+    end

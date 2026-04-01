@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant D as Dashboard
+    participant C as Controller
+    participant DB as PostgreSQL
+    participant A as Agent
+    participant Disp as Dispatcher
+
+    Note over D,C: 1. Remove Request
+    D->>C: DashboardRemoveAgentMessage<br/>(agent_id)
+    C->>DB: SELECT agent (FOR UPDATE)<br/>row-level lock
+
+    Note over C,A: 2. Disconnect Agent
+    C->>A: DisconnectMessage<br/>(reason: "Removed by controller")
+    C->>A: WebSocket close (code 1000)
+    C->>C: Remove from agent_connections
+
+    Note over C,DB: 3. Re-queue Active Jobs
+    C->>DB: SELECT jobs assigned to agent
+    alt Job is ASSIGNED or RUNNING
+        C->>DB: job.status → QUEUED<br/>clear assigned_agent_id<br/>clear started_at
+    else Job is COMPLETED / PASSED / FAILED
+        C->>DB: clear assigned_agent_id only
+    end
+
+    Note over C,DB: 4. Delete Agent
+    C->>DB: DELETE AgentRecord
+    C->>DB: COMMIT
+
+    Note over C,Disp: 5. Redispatch
+    C->>Disp: try_dispatch()
+    Disp->>DB: Find queued jobs +<br/>available online agents
+    opt Re-queued job matched
+        Disp->>DB: job → ASSIGNED<br/>new agent → BUSY
+        Disp-->>A: JobAssignMessage to new agent
+    end
+
+    Note over D: 6. Dashboard Notification
+    C-->>D: DashboardSnapshotMessage<br/>(agent removed, jobs updated)

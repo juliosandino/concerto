@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant D as Dashboard
+    participant C as Controller
+    participant DB as PostgreSQL
+    participant Disp as Dispatcher
+    participant A as Agent
+
+    Note over D,C: 1. Job Submission
+    D->>C: DashboardCreateJobMessage<br/>(product, duration)
+    C->>DB: INSERT JobRecord<br/>status = QUEUED
+    Note over D: Dashboard snapshot #1<br/>job appears as QUEUED
+    C-->>D: DashboardSnapshotMessage<br/>(jobs: [..., {status: QUEUED}])
+
+    Note over C,Disp: 2. Dispatch
+    C->>Disp: try_dispatch()
+    Disp->>DB: SELECT queued jobs (FIFO)<br/>SELECT online agents with<br/>matching capabilities
+    Disp->>DB: UPDATE job → ASSIGNED<br/>UPDATE agent → BUSY
+    Disp->>A: JobAssignMessage<br/>(job_id, product, duration)
+    Note over D: Dashboard snapshot #2<br/>job ASSIGNED, agent BUSY
+    C-->>D: DashboardSnapshotMessage<br/>(job: ASSIGNED, agent: BUSY)
+
+    Note over A: 3. Execution
+    A->>A: Start job execution
+    A->>C: JobStatusMessage<br/>(status: RUNNING)
+    C->>DB: UPDATE job → RUNNING<br/>started_at = now()
+    Note over D: Dashboard snapshot #3<br/>job is RUNNING
+    C-->>D: DashboardSnapshotMessage<br/>(job: RUNNING)
+
+    A->>A: await sleep(duration)
+
+    A->>C: JobStatusMessage<br/>(status: PASSED, result: "...")
+    C->>DB: UPDATE job → PASSED<br/>completed_at = now()<br/>agent → ONLINE
+    Note over D: Dashboard snapshot #4<br/>job PASSED, agent back ONLINE
+    C-->>D: DashboardSnapshotMessage<br/>(job: PASSED, agent: ONLINE)
+
+    Note over C,Disp: 4. Next job cycle
+    C->>Disp: try_dispatch()<br/>(check for more queued jobs)
