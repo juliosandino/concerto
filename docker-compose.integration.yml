@@ -23,11 +23,8 @@ services:
     volumes:
       - test-results:/results
     environment:
-      DATABASE_URL:
       TERM: xterm-256color
       COLORTERM: truecolor
-      CONCERTO_WS_HOST: "0.0.0.0"
-      CONCERTO_WS_PORT: "8000"
     networks:
       - integration
 
